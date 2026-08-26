@@ -9,7 +9,7 @@ function App() {
 
   return (
     <div className="text-5xl font-bold text-center ">
-      Hello world
+      Hello world hey guys 
       </div>
   )
 }
