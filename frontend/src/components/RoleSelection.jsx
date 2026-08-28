@@ -30,7 +30,13 @@ const RoleSelection = () => {
       return;
     }
 
-    navigate(`/${selectedRole}/login`);
+    // Citizen login page
+    if (selectedRole === "citizen") {
+      navigate("/citizen/login");
+      return;
+    }
+
+    alert(`${selectedRole} login page is coming soon.`);
   };
 
   const handleRegister = () => {
@@ -39,7 +45,13 @@ const RoleSelection = () => {
       return;
     }
 
-    navigate(`/${selectedRole}/register`);
+    // Citizen register page
+    if (selectedRole === "citizen") {
+      navigate("/citizen/register");
+      return;
+    }
+
+    alert(`${selectedRole} registration page is coming soon.`);
   };
 
   return (
@@ -47,7 +59,6 @@ const RoleSelection = () => {
 
       {/* Heading */}
       <div className="text-center mb-5">
-
         <h2 className="text-2xl lg:text-3xl font-bold text-slate-900">
           Select Your Role
         </h2>
@@ -55,12 +66,10 @@ const RoleSelection = () => {
         <p className="text-sm text-slate-500 mt-1">
           Choose your role to continue
         </p>
-
       </div>
 
       {/* Role Options */}
       <div className="space-y-3">
-
         {roles.map((role) => {
           const isSelected = selectedRole === role.id;
 
@@ -80,7 +89,6 @@ const RoleSelection = () => {
                 }
               `}
             >
-
               {/* Radio Button */}
               <input
                 type="radio"
@@ -101,11 +109,9 @@ const RoleSelection = () => {
                   {role.description}
                 </p>
               </div>
-
             </label>
           );
         })}
-
       </div>
 
       {/* Login and Register Buttons */}

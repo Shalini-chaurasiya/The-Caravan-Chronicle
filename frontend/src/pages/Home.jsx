@@ -10,7 +10,7 @@ const Home = () => {
         <div className="flex flex-col md:flex-row h-full">
 
           {/* LEFT SIDE */}
-          <div className="w-full md:w-1/2 bg-slate-50 px-8 py-6 lg:px-12 lg:py-8 flex items-center">
+          <div className="w-full md:w-1/2 bg-slate-100 px-8 py-6 lg:px-12 lg:py-8 flex items-center">
 
             <div className="w-full">
 

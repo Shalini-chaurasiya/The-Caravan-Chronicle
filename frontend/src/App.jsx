@@ -1,5 +1,8 @@
 import { Routes, Route } from "react-router-dom";
+
 import Home from "./pages/Home";
+import CitizenLogin from "./pages/citizen/CitizenLogin";
+import CitizenRegister from "./pages/citizen/CitizenRegister";
 
 function App() {
   return (
@@ -10,20 +13,12 @@ function App() {
       {/* Citizen */}
       <Route
         path="/citizen/login"
-        element={
-          <div className="min-h-screen flex items-center justify-center">
-            <h1 className="text-3xl font-bold">Citizen Login Page</h1>
-          </div>
-        }
+        element={<CitizenLogin />}
       />
 
       <Route
         path="/citizen/register"
-        element={
-          <div className="min-h-screen flex items-center justify-center">
-            <h1 className="text-3xl font-bold">Citizen Register Page</h1>
-          </div>
-        }
+        element={<CitizenRegister />}
       />
 
       {/* Staff */}
@@ -31,7 +26,9 @@ function App() {
         path="/staff/login"
         element={
           <div className="min-h-screen flex items-center justify-center">
-            <h1 className="text-3xl font-bold">Staff Login Page</h1>
+            <h1 className="text-3xl font-bold">
+              Staff Login Page
+            </h1>
           </div>
         }
       />
@@ -40,7 +37,9 @@ function App() {
         path="/staff/register"
         element={
           <div className="min-h-screen flex items-center justify-center">
-            <h1 className="text-3xl font-bold">Staff Register Page</h1>
+            <h1 className="text-3xl font-bold">
+              Staff Register Page
+            </h1>
           </div>
         }
       />
@@ -50,7 +49,9 @@ function App() {
         path="/owner/login"
         element={
           <div className="min-h-screen flex items-center justify-center">
-            <h1 className="text-3xl font-bold">Owner Login Page</h1>
+            <h1 className="text-3xl font-bold">
+              Owner Login Page
+            </h1>
           </div>
         }
       />
@@ -59,7 +60,9 @@ function App() {
         path="/owner/register"
         element={
           <div className="min-h-screen flex items-center justify-center">
-            <h1 className="text-3xl font-bold">Owner Register Page</h1>
+            <h1 className="text-3xl font-bold">
+              Owner Register Page
+            </h1>
           </div>
         }
       />
