@@ -1,11 +1,20 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
 const app = express();
+
+// CORS
+app.use(
+    cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+    })
+);
 
 // Middleware
 app.use(express.json());

@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const CitizenLogin = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -14,21 +19,63 @@ const CitizenLogin = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Citizen Login:", formData);
+    setError("");
+    setLoading(true);
 
-    // Later:
-    // Send email and password to backend
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      console.log("Login Response:", data);
+
+      // Save JWT token
+      localStorage.setItem("token", data.token);
+
+      // Save user information
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
+      alert("Login successful!");
+
+      // Later, navigate to citizen dashboard
+      // navigate("/citizen/dashboard");
+
+    } catch (error) {
+      console.error("Login Error:", error);
+
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-sm p-8">
 
         {/* Header */}
         <div className="text-center mb-7">
+
           <p className="text-blue-600 text-sm font-semibold mb-2">
             MUNICIPAL SERVICES
           </p>
@@ -40,10 +87,21 @@ const CitizenLogin = () => {
           <p className="text-sm text-slate-500 mt-2">
             Login to submit and track your complaints.
           </p>
+
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5"
+        >
 
           {/* Email */}
           <div>
@@ -68,6 +126,7 @@ const CitizenLogin = () => {
 
           {/* Password */}
           <div>
+
             <label
               htmlFor="password"
               className="block text-sm font-medium text-slate-700 mb-2"
@@ -83,11 +142,11 @@ const CitizenLogin = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              minLength="6"
+              minLength={6}
               className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
 
-            {/* Forgot Password Below Password Field */}
+            {/* Forgot Password */}
             <div className="flex justify-end mt-2">
               <Link
                 to="/citizen/forgot-password"
@@ -96,14 +155,16 @@ const CitizenLogin = () => {
                 Forgot Password?
               </Link>
             </div>
+
           </div>
 
           {/* Login Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
 
         </form>
