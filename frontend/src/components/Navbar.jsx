@@ -1,0 +1,292 @@
+import React, { useState } from "react";
+import {
+  Bell,
+  ChevronDown,
+  User,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  X,
+  Building2,
+} from "lucide-react";
+
+const Navbar = () => {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    // Small top gap + space from left and right
+    <div className="px-6 pt-3 sm:px-8 lg:px-12">
+
+      <nav className="mx-auto max-w-[1450px] overflow-visible rounded-[50px] bg-[#063b7a] text-white shadow-lg">
+
+        {/* ================= MAIN NAVBAR ================= */}
+        <div className="flex h-20 items-center justify-between px-7 sm:px-10 lg:px-12">
+
+          {/* ================= LOGO ================= */}
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+              <Building2 size={25} />
+            </div>
+
+            <div>
+              <h1 className="text-lg font-bold tracking-wide">
+                Municipal Services
+              </h1>
+
+              <p className="mt-0.5 text-[11px] text-blue-100">
+                Grievance Management System
+              </p>
+            </div>
+
+          </div>
+
+
+          {/* ================= DESKTOP NAVIGATION ================= */}
+          <div className="hidden items-center gap-2 md:flex">
+
+            <a
+              href="#home"
+              className="rounded-xl bg-white/15 px-6 py-2.5 text-sm font-semibold transition hover:bg-white/20"
+            >
+              Home
+            </a>
+
+            <a
+              href="#about"
+              className="rounded-xl px-6 py-2.5 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+            >
+              About
+            </a>
+
+            <a
+              href="#contact"
+              className="rounded-xl px-6 py-2.5 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+            >
+              Contact
+            </a>
+
+          </div>
+
+
+          {/* ================= RIGHT SIDE ================= */}
+          <div className="hidden items-center gap-4 md:flex">
+
+            {/* Notification */}
+            <button
+              type="button"
+              className="relative flex h-11 w-11 items-center justify-center rounded-xl text-blue-100 transition hover:bg-white/10 hover:text-white"
+              title="Notifications"
+            >
+              <Bell size={21} />
+
+              <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#063b7a]">
+                3
+              </span>
+            </button>
+
+
+            {/* Divider */}
+            <div className="h-8 w-px bg-white/15" />
+
+
+            {/* ================= PROFILE ================= */}
+            <div className="relative">
+
+              <button
+                type="button"
+                onClick={() => setProfileOpen(!profileOpen)}
+                className="flex items-center gap-3 rounded-2xl px-2.5 py-1.5 transition hover:bg-white/10"
+              >
+
+                <img
+                  src="https://i.pravatar.cc/100?img=47"
+                  alt="Profile"
+                  className="h-10 w-10 rounded-full border-2 border-white/80 object-cover"
+                />
+
+                <div className="hidden text-left lg:block">
+                  <p className="text-sm font-semibold">
+                    Citizen
+                  </p>
+
+                  <p className="mt-0.5 text-[10px] text-blue-200">
+                   
+                  </p>
+                </div>
+
+                <ChevronDown
+                  size={17}
+                  className={`transition-transform duration-200 ${
+                    profileOpen ? "rotate-180" : ""
+                  }`}
+                />
+
+              </button>
+
+
+              {/* ================= DROPDOWN ================= */}
+              {profileOpen && (
+                <div className="absolute right-0 top-14 z-50 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white text-gray-700 shadow-2xl">
+
+                  {/* Profile Header */}
+                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-4">
+
+                    <div className="flex items-center gap-3">
+
+                      <img
+                        src="https://i.pravatar.cc/100?img=47"
+                        alt="Profile"
+                        className="h-11 w-11 rounded-full object-cover"
+                      />
+
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          Citizen
+                        </p>
+
+                        <p className="text-xs text-slate-500">
+                          Citizen Account
+                        </p>
+                      </div>
+
+                    </div>
+
+                  </div>
+
+
+                  {/* Options */}
+                  <div className="p-2">
+
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
+                    >
+                      <User
+                        size={18}
+                        className="text-slate-500"
+                      />
+                      Profile
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
+                    >
+                      <LayoutDashboard
+                        size={18}
+                        className="text-slate-500"
+                      />
+                      Dashboard
+                    </button>
+
+                  </div>
+
+
+                  {/* Logout */}
+                  <div className="border-t border-slate-100 p-2">
+
+                    <button
+                      type="button"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut size={18} />
+                      Logout
+                    </button>
+
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+          </div>
+
+
+          {/* ================= MOBILE BUTTON ================= */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="flex h-11 w-11 items-center justify-center rounded-xl transition hover:bg-white/10 md:hidden"
+          >
+            {mobileOpen ? (
+              <X size={26} />
+            ) : (
+              <Menu size={26} />
+            )}
+          </button>
+
+        </div>
+
+
+        {/* ================= MOBILE MENU ================= */}
+        {mobileOpen && (
+          <div className="rounded-b-[28px] border-t border-white/10 bg-[#052f62] px-6 py-5 md:hidden">
+
+            <div className="flex flex-col gap-2">
+
+              <a
+                href="#home"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold"
+              >
+                Home
+              </a>
+
+              <a
+                href="#about"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+              >
+                About
+              </a>
+
+              <a
+                href="#contact"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+              >
+                Contact
+              </a>
+
+              <div className="my-2 h-px bg-white/10" />
+
+              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+                <Bell size={19} />
+                Notifications
+
+                <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold">
+                  3
+                </span>
+              </button>
+
+              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+                <User size={19} />
+                Profile
+              </button>
+
+              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+                <LayoutDashboard size={19} />
+                Dashboard
+              </button>
+
+              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-red-300 hover:bg-red-500/10">
+                <LogOut size={19} />
+                Logout
+              </button>
+
+            </div>
+
+          </div>
+        )}
+
+      </nav>
+    </div>
+  );
+};
+
+export default Navbar;

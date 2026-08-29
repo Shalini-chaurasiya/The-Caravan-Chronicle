@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -6,20 +7,18 @@ const CitizenLogin = () => {
   const { token } = useParams();
 
   // If token exists, show reset password form
-  const [mode, setMode] = useState(
-    token ? "reset" : "login"
-  );
+  const [mode, setMode] = useState(token ? "reset" : "login");
 
-  // Login
+  // LOGIN
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
   });
 
-  // Forgot password
+  // FORGOT PASSWORD
   const [forgotEmail, setForgotEmail] = useState("");
 
-  // Reset password
+  // RESET PASSWORD
   const [resetData, setResetData] = useState({
     password: "",
     confirmPassword: "",
@@ -29,7 +28,9 @@ const CitizenLogin = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // ---------------- LOGIN ----------------
+  // =====================================================
+  // LOGIN
+  // =====================================================
 
   const handleLoginChange = (e) => {
     setLoginData({
@@ -60,34 +61,31 @@ const CitizenLogin = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Login failed"
-        );
+        throw new Error(data.message || "Login failed");
       }
 
-      // Save JWT
+      // Save JWT token
       localStorage.setItem("token", data.token);
 
-      // Save user
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
+      // Save user information
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-      alert("Login successful!");
-
-      // Later:
-      // navigate("/citizen/dashboard");
-
+      // Redirect to Citizen Home
+      navigate("/citizen/");
     } catch (error) {
       console.error("Login Error:", error);
-      setError(error.message);
+
+      setError(
+        error.message || "Unable to login. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- FORGOT PASSWORD ----------------
+  // =====================================================
+  // FORGOT PASSWORD
+  // =====================================================
 
   const handleForgotSubmit = async (e) => {
     e.preventDefault();
@@ -114,28 +112,30 @@ const CitizenLogin = () => {
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Unable to send reset link"
+          data.message || "Unable to send reset link"
         );
       }
 
-      setSuccess(data.message);
-
-      setForgotEmail("");
-
-    } catch (error) {
-      console.error(
-        "Forgot Password Error:",
-        error
+      setSuccess(
+        data.message ||
+          "Password reset link sent successfully."
       );
 
-      setError(error.message);
+      setForgotEmail("");
+    } catch (error) {
+      console.error("Forgot Password Error:", error);
+
+      setError(
+        error.message || "Unable to send reset link."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- RESET PASSWORD ----------------
+  // =====================================================
+  // RESET PASSWORD
+  // =====================================================
 
   const handleResetChange = (e) => {
     setResetData({
@@ -150,6 +150,7 @@ const CitizenLogin = () => {
     setError("");
     setSuccess("");
 
+    // Check password match
     if (
       resetData.password !==
       resetData.confirmPassword
@@ -158,6 +159,7 @@ const CitizenLogin = () => {
       return;
     }
 
+    // Check password length
     if (resetData.password.length < 6) {
       setError(
         "Password must be at least 6 characters."
@@ -185,8 +187,7 @@ const CitizenLogin = () => {
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            "Password reset failed"
+          data.message || "Password reset failed"
         );
       }
 
@@ -199,32 +200,30 @@ const CitizenLogin = () => {
         confirmPassword: "",
       });
 
-      // After 2 seconds go back to login
+      // Go back to login after 2 seconds
       setTimeout(() => {
         navigate("/citizen/login");
       }, 2000);
-
     } catch (error) {
-      console.error(
-        "Reset Password Error:",
-        error
-      );
+      console.error("Reset Password Error:", error);
 
-      setError(error.message);
+      setError(
+        error.message || "Password reset failed."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- LOGIN UI ----------------
+  // =====================================================
+  // LOGIN UI
+  // =====================================================
 
   const renderLogin = () => {
     return (
       <>
-        {/* Header */}
-        <div className="text-center mb-7">
-
-          <p className="text-blue-600 text-sm font-semibold mb-2">
+        <div className="mb-7 text-center">
+          <p className="mb-2 text-sm font-semibold text-blue-600">
             MUNICIPAL SERVICES
           </p>
 
@@ -232,23 +231,20 @@ const CitizenLogin = () => {
             Citizen Login
           </h1>
 
-          <p className="text-sm text-slate-500 mt-2">
+          <p className="mt-2 text-sm text-slate-500">
             Login to submit and track your complaints.
           </p>
-
         </div>
 
-        {/* Login Form */}
         <form
           onSubmit={handleLoginSubmit}
           className="space-y-5"
         >
-
           {/* Email */}
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-slate-700 mb-2"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               Email Address
             </label>
@@ -261,16 +257,16 @@ const CitizenLogin = () => {
               value={loginData.email}
               onChange={handleLoginChange}
               required
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              autoComplete="email"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
           {/* Password */}
           <div>
-
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-slate-700 mb-2"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               Password
             </label>
@@ -284,11 +280,12 @@ const CitizenLogin = () => {
               onChange={handleLoginChange}
               required
               minLength={6}
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              autoComplete="current-password"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
 
             {/* Forgot Password */}
-            <div className="flex justify-end mt-2">
+            <div className="mt-2 flex justify-end">
               <button
                 type="button"
                 onClick={() => {
@@ -296,34 +293,30 @@ const CitizenLogin = () => {
                   setError("");
                   setSuccess("");
                 }}
-                className="text-sm text-blue-600 font-medium hover:underline"
+                className="text-sm font-medium text-blue-600 hover:underline"
               >
                 Forgot Password?
               </button>
             </div>
-
           </div>
 
           {/* Login Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition"
+            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
-            {loading
-              ? "Logging in..."
-              : "Login"}
+            {loading ? "Logging in..." : "Login"}
           </button>
-
         </form>
 
         {/* Register */}
-        <p className="text-center text-sm text-slate-500 mt-6">
+        <p className="mt-6 text-center text-sm text-slate-500">
           Don't have an account?
 
           <Link
             to="/citizen/register"
-            className="text-blue-600 font-semibold ml-1 hover:underline"
+            className="ml-1 font-semibold text-blue-600 hover:underline"
           >
             Register
           </Link>
@@ -332,15 +325,15 @@ const CitizenLogin = () => {
     );
   };
 
-  // ---------------- FORGOT UI ----------------
+  // =====================================================
+  // FORGOT PASSWORD UI
+  // =====================================================
 
   const renderForgotPassword = () => {
     return (
       <>
-        {/* Header */}
-        <div className="text-center mb-7">
-
-          <p className="text-blue-600 text-sm font-semibold mb-2">
+        <div className="mb-7 text-center">
+          <p className="mb-2 text-sm font-semibold text-blue-600">
             MUNICIPAL SERVICES
           </p>
 
@@ -348,22 +341,19 @@ const CitizenLogin = () => {
             Forgot Password
           </h1>
 
-          <p className="text-sm text-slate-500 mt-2">
+          <p className="mt-2 text-sm text-slate-500">
             Enter your registered email address.
           </p>
-
         </div>
 
         <form
           onSubmit={handleForgotSubmit}
           className="space-y-5"
         >
-
-          {/* Email */}
           <div>
             <label
               htmlFor="forgotEmail"
-              className="block text-sm font-medium text-slate-700 mb-2"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               Email Address
             </label>
@@ -377,24 +367,22 @@ const CitizenLogin = () => {
                 setForgotEmail(e.target.value)
               }
               required
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              autoComplete="email"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
-          {/* Send Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition"
+            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             {loading
               ? "Sending..."
               : "Send Reset Link"}
           </button>
-
         </form>
 
-        {/* Back to Login */}
         <button
           type="button"
           onClick={() => {
@@ -402,7 +390,7 @@ const CitizenLogin = () => {
             setError("");
             setSuccess("");
           }}
-          className="block w-full text-center text-sm text-slate-500 hover:text-blue-600 mt-6"
+          className="mt-6 block w-full text-center text-sm text-slate-500 hover:text-blue-600"
         >
           ← Back to Login
         </button>
@@ -410,15 +398,15 @@ const CitizenLogin = () => {
     );
   };
 
-  // ---------------- RESET UI ----------------
+  // =====================================================
+  // RESET PASSWORD UI
+  // =====================================================
 
   const renderResetPassword = () => {
     return (
       <>
-        {/* Header */}
-        <div className="text-center mb-7">
-
-          <p className="text-blue-600 text-sm font-semibold mb-2">
+        <div className="mb-7 text-center">
+          <p className="mb-2 text-sm font-semibold text-blue-600">
             MUNICIPAL SERVICES
           </p>
 
@@ -426,22 +414,20 @@ const CitizenLogin = () => {
             Reset Password
           </h1>
 
-          <p className="text-sm text-slate-500 mt-2">
+          <p className="mt-2 text-sm text-slate-500">
             Create a new password for your account.
           </p>
-
         </div>
 
         <form
           onSubmit={handleResetSubmit}
           className="space-y-5"
         >
-
           {/* New Password */}
           <div>
             <label
               htmlFor="newPassword"
-              className="block text-sm font-medium text-slate-700 mb-2"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               New Password
             </label>
@@ -455,7 +441,8 @@ const CitizenLogin = () => {
               onChange={handleResetChange}
               required
               minLength={6}
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              autoComplete="new-password"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
@@ -463,7 +450,7 @@ const CitizenLogin = () => {
           <div>
             <label
               htmlFor="confirmPassword"
-              className="block text-sm font-medium text-slate-700 mb-2"
+              className="mb-2 block text-sm font-medium text-slate-700"
             >
               Confirm Password
             </label>
@@ -477,7 +464,8 @@ const CitizenLogin = () => {
               onChange={handleResetChange}
               required
               minLength={6}
-              className="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              autoComplete="new-password"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
@@ -485,35 +473,35 @@ const CitizenLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition"
+            className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
             {loading
               ? "Resetting..."
               : "Reset Password"}
           </button>
-
         </form>
       </>
     );
   };
 
-  // ---------------- MAIN UI ----------------
+  // =====================================================
+  // MAIN UI
+  // =====================================================
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-sm p-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
 
         {/* Error */}
         {error && (
-          <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+          <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
         {/* Success */}
         {success && (
-          <div className="mb-5 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
+          <div className="mb-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
             {success}
           </div>
         )}
@@ -527,16 +515,15 @@ const CitizenLogin = () => {
         {mode === "reset" &&
           renderResetPassword()}
 
-        {/* Back to Home */}
+        {/* Back to Role Selection */}
         {mode !== "reset" && (
           <Link
             to="/"
-            className="block text-center text-sm text-slate-500 hover:text-blue-600 mt-5"
+            className="mt-5 block text-center text-sm text-slate-500 hover:text-blue-600"
           >
             ← Back to role selection
           </Link>
         )}
-
       </div>
     </div>
   );
