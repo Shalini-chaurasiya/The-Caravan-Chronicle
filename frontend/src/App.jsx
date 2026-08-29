@@ -7,21 +7,47 @@ import CitizenRegister from "./pages/citizen/CitizenRegister";
 function App() {
   return (
     <Routes>
-      {/* Home */}
-      <Route path="/" element={<Home />} />
 
-      {/* Citizen */}
+      {/* ================= HOME ================= */}
+      <Route
+        path="/"
+        element={<Home />}
+      />
+
+
+      {/* ================= CITIZEN ================= */}
+
+      {/* Citizen Login */}
       <Route
         path="/citizen/login"
         element={<CitizenLogin />}
       />
 
+      {/* Citizen Register */}
       <Route
         path="/citizen/register"
         element={<CitizenRegister />}
       />
 
-      {/* Staff */}
+      {/* Citizen Forgot Password
+          This route is optional because the forgot form
+          is displayed inside CitizenLogin.jsx */}
+      <Route
+        path="/citizen/forgot-password"
+        element={<CitizenLogin />}
+      />
+
+      {/* Citizen Reset Password
+          Token comes from the email reset link */}
+      <Route
+        path="/reset-password/:token"
+        element={<CitizenLogin />}
+      />
+
+
+      {/* ================= STAFF ================= */}
+
+      {/* Staff Login */}
       <Route
         path="/staff/login"
         element={
@@ -33,6 +59,7 @@ function App() {
         }
       />
 
+      {/* Staff Register */}
       <Route
         path="/staff/register"
         element={
@@ -44,7 +71,10 @@ function App() {
         }
       />
 
-      {/* Owner */}
+
+      {/* ================= OWNER ================= */}
+
+      {/* Owner Login */}
       <Route
         path="/owner/login"
         element={
@@ -56,6 +86,7 @@ function App() {
         }
       />
 
+      {/* Owner Register */}
       <Route
         path="/owner/register"
         element={
@@ -66,6 +97,7 @@ function App() {
           </div>
         }
       />
+
     </Routes>
   );
 }
