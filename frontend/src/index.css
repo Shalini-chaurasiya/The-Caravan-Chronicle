@@ -11,3 +11,33 @@ body,
 body {
   overflow: hidden;
 }
+
+@import "tailwindcss";
+
+/* ================================
+   GLOBAL PAGE SETTINGS
+================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+/* Prevent elements from causing horizontal overflow */
+* {
+  box-sizing: border-box;
+}

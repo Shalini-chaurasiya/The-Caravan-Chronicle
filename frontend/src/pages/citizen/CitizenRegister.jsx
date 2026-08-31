@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const CitizenRegister = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -15,21 +21,64 @@ const CitizenRegister = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Citizen Registration:", formData);
+    setError("");
+    setSuccess("");
+    setLoading(true);
 
-    // Later:
-    // Send name, email and password to backend
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed");
+      }
+
+      console.log("Registration Response:", data);
+
+      setSuccess(
+        "Registration successful! Redirecting to login..."
+      );
+
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+      });
+
+      setTimeout(() => {
+        navigate("/citizen/login");
+      }, 1500);
+
+    } catch (error) {
+      console.error("Registration Error:", error);
+
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+
       <div className="w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-sm p-8">
 
         {/* Header */}
         <div className="text-center mb-6">
+
           <p className="text-blue-600 text-sm font-semibold mb-2">
             MUNICIPAL SERVICES
           </p>
@@ -41,10 +90,28 @@ const CitizenRegister = () => {
           <p className="text-sm text-slate-500 mt-2">
             Create an account to submit and track complaints.
           </p>
+
         </div>
 
-        {/* Register Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg">
+            {success}
+          </div>
+        )}
+
+        {/* Registration Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
 
           {/* Full Name */}
           <div>
@@ -105,17 +172,24 @@ const CitizenRegister = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              minLength="6"
+              minLength={6}
               className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
+
+            <p className="text-xs text-slate-400 mt-1">
+              Password must be at least 6 characters.
+            </p>
           </div>
 
           {/* Register Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-3 rounded-lg transition"
           >
-            Create Account
+            {loading
+              ? "Creating Account..."
+              : "Create Account"}
           </button>
 
         </form>
