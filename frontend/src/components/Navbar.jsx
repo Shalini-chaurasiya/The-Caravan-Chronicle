@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import {
   Bell,
@@ -13,40 +18,76 @@ import {
 } from "lucide-react";
 
 const Navbar = () => {
+
+  // =====================================================
+  // STATES
+  // =====================================================
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // =====================================================
+  // ROUTER
+  // =====================================================
 
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check active page
+  // =====================================================
+  // ACTIVE PAGE
+  // =====================================================
+
   const isHome = location.pathname === "/citizen";
+
   const isAbout = location.pathname === "/citizen/about";
 
-  // Close menus
+  const isContact = location.pathname === "/contact";
+
+  // =====================================================
+  // CLOSE MENUS
+  // =====================================================
+
   const closeMenus = () => {
     setMobileOpen(false);
     setProfileOpen(false);
   };
 
-  // Logout
-  const handleLogout = () => {
-    setProfileOpen(false);
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
-    // Add your logout API/localStorage logic here later
+  const handleLogout = () => {
+
+    // IMPORTANT:
+    // Only remove token here if you actually want logout.
+    // Contact does NOT call this function.
+
+    localStorage.removeItem("token");
+
+    setProfileOpen(false);
+    setMobileOpen(false);
+
     navigate("/citizen/login");
   };
 
   return (
     <div className="px-6 pt-3 sm:px-8 lg:px-12">
 
+      {/* =====================================================
+          NAVBAR
+      ===================================================== */}
+
       <nav className="mx-auto max-w-[1450px] overflow-visible rounded-[50px] bg-[#063b7a] text-white shadow-lg">
 
-        {/* ================= MAIN NAVBAR ================= */}
+        {/* =====================================================
+            MAIN NAVBAR
+        ===================================================== */}
 
         <div className="flex h-20 items-center justify-between px-7 sm:px-10 lg:px-12">
 
-          {/* ================= LOGO ================= */}
+          {/* =================================================
+              LOGO
+          ================================================== */}
 
           <Link
             to="/citizen"
@@ -59,6 +100,7 @@ const Navbar = () => {
             </div>
 
             <div>
+
               <h1 className="text-lg font-bold tracking-wide">
                 Municipal Services
               </h1>
@@ -66,22 +108,25 @@ const Navbar = () => {
               <p className="mt-0.5 text-[11px] text-blue-100">
                 Grievance Management System
               </p>
+
             </div>
 
           </Link>
 
 
-          {/* ================= DESKTOP NAVIGATION ================= */}
+          {/* =================================================
+              DESKTOP NAVIGATION
+          ================================================== */}
 
           <div className="hidden items-center gap-2 md:flex">
 
-            {/* HOME */}
+            {/* ================= HOME ================= */}
 
             <Link
               to="/citizen"
               className={`rounded-xl px-6 py-2.5 text-sm font-semibold transition ${
                 isHome
-                  ? "bg-white/15"
+                  ? "bg-white/15 text-white"
                   : "text-blue-100 hover:bg-white/10 hover:text-white"
               }`}
             >
@@ -89,7 +134,7 @@ const Navbar = () => {
             </Link>
 
 
-            {/* ABOUT */}
+            {/* ================= ABOUT ================= */}
 
             <Link
               to="/citizen/about"
@@ -103,19 +148,26 @@ const Navbar = () => {
             </Link>
 
 
-            {/* CONTACT */}
+            {/* ================= CONTACT ================= */}
 
-            <a
-              href="#contact"
-              className="rounded-xl px-6 py-2.5 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+            <Link
+              to="/contact"
+              onClick={closeMenus}
+              className={`rounded-xl px-6 py-2.5 text-sm font-medium transition ${
+                isContact
+                  ? "bg-white/15 text-white"
+                  : "text-blue-100 hover:bg-white/10 hover:text-white"
+              }`}
             >
               Contact
-            </a>
+            </Link>
 
           </div>
 
 
-          {/* ================= RIGHT SIDE ================= */}
+          {/* =================================================
+              RIGHT SIDE
+          ================================================== */}
 
           <div className="hidden items-center gap-4 md:flex">
 
@@ -126,15 +178,17 @@ const Navbar = () => {
               className="relative flex h-11 w-11 items-center justify-center rounded-xl text-blue-100 transition hover:bg-white/10 hover:text-white"
               title="Notifications"
             >
+
               <Bell size={21} />
 
               <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#063b7a]">
                 3
               </span>
+
             </button>
 
 
-            {/* Divider */}
+            {/* ================= DIVIDER ================= */}
 
             <div className="h-8 w-px bg-white/15" />
 
@@ -222,12 +276,14 @@ const Navbar = () => {
                       type="button"
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
+
                       <User
                         size={18}
                         className="text-slate-500"
                       />
 
                       Profile
+
                     </button>
 
 
@@ -241,12 +297,14 @@ const Navbar = () => {
                       }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
+
                       <LayoutDashboard
                         size={18}
                         className="text-slate-500"
                       />
 
                       Dashboard
+
                     </button>
 
                   </div>
@@ -261,9 +319,11 @@ const Navbar = () => {
                       onClick={handleLogout}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
                     >
+
                       <LogOut size={18} />
 
                       Logout
+
                     </button>
 
                   </div>
@@ -277,7 +337,9 @@ const Navbar = () => {
           </div>
 
 
-          {/* ================= MOBILE BUTTON ================= */}
+          {/* =================================================
+              MOBILE BUTTON
+          ================================================== */}
 
           <button
             type="button"
@@ -296,7 +358,9 @@ const Navbar = () => {
         </div>
 
 
-        {/* ================= MOBILE MENU ================= */}
+        {/* =====================================================
+            MOBILE MENU
+        ====================================================== */}
 
         {mobileOpen && (
 
@@ -304,14 +368,14 @@ const Navbar = () => {
 
             <div className="flex flex-col gap-2">
 
-              {/* Home */}
+              {/* ================= HOME ================= */}
 
               <Link
                 to="/citizen"
                 onClick={closeMenus}
                 className={`rounded-xl px-4 py-3 text-sm font-semibold ${
                   isHome
-                    ? "bg-white/10"
+                    ? "bg-white/10 text-white"
                     : "text-blue-100 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -319,7 +383,7 @@ const Navbar = () => {
               </Link>
 
 
-              {/* About */}
+              {/* ================= ABOUT ================= */}
 
               <Link
                 to="/citizen/about"
@@ -334,23 +398,32 @@ const Navbar = () => {
               </Link>
 
 
-              {/* Contact */}
+              {/* ================= CONTACT ================= */}
 
-              <a
-                href="#contact"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+              <Link
+                to="/contact"
+                onClick={closeMenus}
+                className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                  isContact
+                    ? "bg-white/10 text-white"
+                    : "text-blue-100 hover:bg-white/10 hover:text-white"
+                }`}
               >
                 Contact
-              </a>
+              </Link>
 
+
+              {/* ================= DIVIDER ================= */}
 
               <div className="my-2 h-px bg-white/10" />
 
 
-              {/* Notifications */}
+              {/* ================= NOTIFICATIONS ================= */}
 
-              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
+              >
 
                 <Bell size={19} />
 
@@ -363,9 +436,12 @@ const Navbar = () => {
               </button>
 
 
-              {/* Profile */}
+              {/* ================= PROFILE ================= */}
 
-              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
+              >
 
                 <User size={19} />
 
@@ -374,9 +450,10 @@ const Navbar = () => {
               </button>
 
 
-              {/* Dashboard */}
+              {/* ================= DASHBOARD ================= */}
 
               <button
+                type="button"
                 onClick={() => {
                   setMobileOpen(false);
                   navigate("/citizen/dashboard");
@@ -391,9 +468,10 @@ const Navbar = () => {
               </button>
 
 
-              {/* Logout */}
+              {/* ================= LOGOUT ================= */}
 
               <button
+                type="button"
                 onClick={handleLogout}
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-red-300 hover:bg-red-500/10"
               >
