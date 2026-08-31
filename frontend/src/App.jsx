@@ -1,3 +1,4 @@
+
 import { Routes, Route, Link } from "react-router-dom";
 
 // ================= HOME =================
@@ -24,21 +25,14 @@ function App() {
         element={<Home />}
       />
 
-
       {/* =====================================================
           CONTACT PAGE
-
-          File:
-          src/pages/Contact.jsx
-
-          URL:
-          http://localhost:5174/contact
+          URL: http://localhost:5174/contact
       ===================================================== */}
       <Route
         path="/contact"
         element={<Contact />}
       />
-
 
       {/* =====================================================
           CITIZEN
@@ -80,7 +74,6 @@ function App() {
         element={<CitizenLogin />}
       />
 
-
       {/* =====================================================
           STAFF
       ===================================================== */}
@@ -89,8 +82,8 @@ function App() {
       <Route
         path="/staff/login"
         element={
-          <div className="flex min-h-screen items-center justify-center">
-            <h1 className="text-3xl font-bold">
+          <div className="flex min-h-screen items-center justify-center bg-gray-50">
+            <h1 className="text-3xl font-bold text-gray-800">
               Staff Login Page
             </h1>
           </div>
@@ -101,14 +94,13 @@ function App() {
       <Route
         path="/staff/register"
         element={
-          <div className="flex min-h-screen items-center justify-center">
-            <h1 className="text-3xl font-bold">
+          <div className="flex min-h-screen items-center justify-center bg-gray-50">
+            <h1 className="text-3xl font-bold text-gray-800">
               Staff Register Page
             </h1>
           </div>
         }
       />
-
 
       {/* =====================================================
           OWNER
@@ -118,8 +110,8 @@ function App() {
       <Route
         path="/owner/login"
         element={
-          <div className="flex min-h-screen items-center justify-center">
-            <h1 className="text-3xl font-bold">
+          <div className="flex min-h-screen items-center justify-center bg-gray-50">
+            <h1 className="text-3xl font-bold text-gray-800">
               Owner Login Page
             </h1>
           </div>
@@ -130,14 +122,13 @@ function App() {
       <Route
         path="/owner/register"
         element={
-          <div className="flex min-h-screen items-center justify-center">
-            <h1 className="text-3xl font-bold">
+          <div className="flex min-h-screen items-center justify-center bg-gray-50">
+            <h1 className="text-3xl font-bold text-gray-800">
               Owner Register Page
             </h1>
           </div>
         }
       />
-
 
       {/* =====================================================
           404 PAGE
@@ -146,6 +137,7 @@ function App() {
         path="*"
         element={
           <div className="flex min-h-screen items-center justify-center bg-gray-50">
+
             <div className="text-center">
 
               <h1 className="text-6xl font-bold text-gray-800">
@@ -164,6 +156,7 @@ function App() {
               </Link>
 
             </div>
+
           </div>
         }
       />
@@ -173,3 +166,4 @@ function App() {
 }
 
 export default App;
+
