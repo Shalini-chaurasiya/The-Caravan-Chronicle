@@ -2,10 +2,15 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 
+mongoose.connect(process.env.MONGO_URI);
+
 const app = express();
+
+const mongoose = require("mongoose");
 
 // Middleware
 app.use(express.json());

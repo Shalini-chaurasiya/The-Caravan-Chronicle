@@ -3,7 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import CitizenLogin from "./pages/citizen/CitizenLogin";
 import CitizenRegister from "./pages/citizen/CitizenRegister";
-
+import Contact from "./pages/citizen/Contact";
 function App() {
   return (
     <Routes>
@@ -66,6 +66,7 @@ function App() {
           </div>
         }
       />
+      <Route path="/contact" element={<Contact />} />
     </Routes>
   );
 }
