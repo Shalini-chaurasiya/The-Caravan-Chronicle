@@ -5,8 +5,10 @@ import Home from "./pages/Home";
 
 // ================= CITIZEN =================
 import CitizenHome from "./pages/citizen/CitizenHome";
+import CitizenAbout from "./pages/citizen/CitizenAbout";
 import CitizenLogin from "./pages/citizen/CitizenLogin";
 import CitizenRegister from "./pages/citizen/CitizenRegister";
+
 
 function App() {
   return (
@@ -22,12 +24,16 @@ function App() {
 
       {/* ================= CITIZEN ================= */}
 
-      {/* Citizen Landing Page
-          Navbar + Citizen Home + Footer
-          are handled inside CitizenHome.jsx */}
+      {/* Citizen Home / Landing Page */}
       <Route
         path="/citizen"
         element={<CitizenHome />}
+      />
+
+      {/* Citizen About Page */}
+      <Route
+        path="/citizen/about"
+        element={<CitizenAbout />}
       />
 
       {/* Citizen Login */}
@@ -57,6 +63,7 @@ function App() {
 
       {/* ================= STAFF ================= */}
 
+      {/* Staff Login */}
       <Route
         path="/staff/login"
         element={
@@ -68,6 +75,7 @@ function App() {
         }
       />
 
+      {/* Staff Register */}
       <Route
         path="/staff/register"
         element={
@@ -82,6 +90,7 @@ function App() {
 
       {/* ================= OWNER ================= */}
 
+      {/* Owner Login */}
       <Route
         path="/owner/login"
         element={
@@ -93,6 +102,7 @@ function App() {
         }
       />
 
+      {/* Owner Register */}
       <Route
         path="/owner/register"
         element={
@@ -112,6 +122,7 @@ function App() {
         element={
           <div className="flex min-h-screen items-center justify-center">
             <div className="text-center">
+
               <h1 className="text-5xl font-bold text-gray-800">
                 404
               </h1>
@@ -119,6 +130,14 @@ function App() {
               <p className="mt-3 text-gray-600">
                 Page not found
               </p>
+
+              <a
+                href="/"
+                className="mt-5 inline-block rounded-lg bg-blue-700 px-5 py-2 text-white hover:bg-blue-800"
+              >
+                Go Home
+              </a>
+
             </div>
           </div>
         }
