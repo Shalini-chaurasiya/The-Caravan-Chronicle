@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 const Navbar = () => {
-
   // =====================================================
   // STATES
   // =====================================================
@@ -32,6 +31,69 @@ const Navbar = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  // =====================================================
+  // GET USER DETAILS
+  // =====================================================
+
+  /*
+    We try different localStorage keys because your
+    login/register code may store the user differently.
+  */
+
+  const getUserDetails = () => {
+    try {
+      const storedUser =
+        localStorage.getItem("user") ||
+        localStorage.getItem("currentUser") ||
+        localStorage.getItem("userData");
+
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+
+        return {
+          name:
+            parsedUser.name ||
+            parsedUser.fullName ||
+            parsedUser.username ||
+            parsedUser.firstName ||
+            "Citizen",
+
+          email: parsedUser.email || "",
+        };
+      }
+    } catch (error) {
+      console.error("Error reading user data:", error);
+    }
+
+    // Fallback if user data is stored directly
+    const name =
+      localStorage.getItem("name") ||
+      localStorage.getItem("fullName") ||
+      localStorage.getItem("username") ||
+      "Citizen";
+
+    const email = localStorage.getItem("email") || "";
+
+    return {
+      name,
+      email,
+    };
+  };
+
+  const user = getUserDetails();
+
+  // =====================================================
+  // FIRST LETTER OF USER NAME
+  // =====================================================
+
+  const getInitial = (name) => {
+    if (!name) return "C";
+
+    return name.trim().charAt(0).toUpperCase();
+  };
+
+  const userInitial = getInitial(user.name);
 
   // =====================================================
   // ACTIVE PAGE
@@ -57,17 +119,37 @@ const Navbar = () => {
   // =====================================================
 
   const handleLogout = () => {
-
-    // IMPORTANT:
-    // Only remove token here if you actually want logout.
-    // Contact does NOT call this function.
-
+    // Remove authentication token
     localStorage.removeItem("token");
+
+    // Remove stored user information
+    localStorage.removeItem("user");
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("userData");
+
+    localStorage.removeItem("name");
+    localStorage.removeItem("fullName");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
 
     setProfileOpen(false);
     setMobileOpen(false);
 
     navigate("/citizen/login");
+  };
+
+  // =====================================================
+  // PROFILE INITIAL COMPONENT
+  // =====================================================
+
+  const ProfileInitial = ({ size = "h-10 w-10" }) => {
+    return (
+      <div
+        className={`${size} flex items-center justify-center rounded-full border-2 border-white/80 bg-white text-lg font-bold text-[#063b7a]`}
+      >
+        {userInitial}
+      </div>
+    );
   };
 
   return (
@@ -124,6 +206,7 @@ const Navbar = () => {
 
             <Link
               to="/citizen"
+              onClick={closeMenus}
               className={`rounded-xl px-6 py-2.5 text-sm font-semibold transition ${
                 isHome
                   ? "bg-white/15 text-white"
@@ -138,6 +221,7 @@ const Navbar = () => {
 
             <Link
               to="/citizen/about"
+              onClick={closeMenus}
               className={`rounded-xl px-6 py-2.5 text-sm font-medium transition ${
                 isAbout
                   ? "bg-white/15 text-white"
@@ -203,21 +287,15 @@ const Navbar = () => {
                 className="flex items-center gap-3 rounded-2xl px-2.5 py-1.5 transition hover:bg-white/10"
               >
 
-                <img
-                  src="https://i.pravatar.cc/100?img=47"
-                  alt="Profile"
-                  className="h-10 w-10 rounded-full border-2 border-white/80 object-cover"
-                />
+                {/* USER FIRST LETTER */}
+
+                <ProfileInitial />
 
                 <div className="hidden text-left lg:block">
 
-                  <p className="text-sm font-semibold">
-                    Citizen
-                  </p>
+                  
 
-                  <p className="mt-0.5 text-[10px] text-blue-200">
-                    Citizen Account
-                  </p>
+                 
 
                 </div>
 
@@ -243,20 +321,20 @@ const Navbar = () => {
 
                     <div className="flex items-center gap-3">
 
-                      <img
-                        src="https://i.pravatar.cc/100?img=47"
-                        alt="Profile"
-                        className="h-11 w-11 rounded-full object-cover"
-                      />
+                      {/* USER FIRST LETTER */}
+
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#063b7a] text-lg font-bold text-white">
+                        {userInitial}
+                      </div>
 
                       <div>
 
                         <p className="font-semibold text-slate-900">
-                          Citizen
+                          {user.name}
                         </p>
 
                         <p className="text-xs text-slate-500">
-                          Citizen Account
+                          {user.email || "Citizen Account"}
                         </p>
 
                       </div>
@@ -270,10 +348,14 @@ const Navbar = () => {
 
                   <div className="p-2">
 
-                    {/* Profile */}
+                    {/* ================= PROFILE ================= */}
 
                     <button
                       type="button"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/citizen/profile");
+                      }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
 
@@ -287,7 +369,7 @@ const Navbar = () => {
                     </button>
 
 
-                    {/* Dashboard */}
+                    {/* ================= DASHBOARD ================= */}
 
                     <button
                       type="button"
@@ -310,7 +392,7 @@ const Navbar = () => {
                   </div>
 
 
-                  {/* Logout */}
+                  {/* ================= LOGOUT ================= */}
 
                   <div className="border-t border-slate-100 p-2">
 
@@ -367,6 +449,29 @@ const Navbar = () => {
           <div className="rounded-b-[28px] border-t border-white/10 bg-[#052f62] px-6 py-5 md:hidden">
 
             <div className="flex flex-col gap-2">
+
+              {/* ================= USER INFO ================= */}
+
+              <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3">
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-lg font-bold text-[#063b7a]">
+                  {userInitial}
+                </div>
+
+                <div>
+
+                  <p className="text-sm font-semibold text-white">
+                    {user.name}
+                  </p>
+
+                  <p className="text-xs text-blue-200">
+                    Citizen Account
+                  </p>
+
+                </div>
+
+              </div>
+
 
               {/* ================= HOME ================= */}
 
@@ -440,6 +545,10 @@ const Navbar = () => {
 
               <button
                 type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  navigate("/citizen/profile");
+                }}
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
               >
 
