@@ -12,7 +12,7 @@ import CitizenHome from "./pages/citizen/CitizenHome";
 import CitizenAbout from "./pages/citizen/CitizenAbout";
 import CitizenLogin from "./pages/citizen/CitizenLogin";
 import CitizenRegister from "./pages/citizen/CitizenRegister"; 
-import Contact from "./pages/citizen/Contact";
+
 
 
 
@@ -132,7 +132,7 @@ function App() {
           </div>
         }
       />
-      <Route path="/contact" element={<Contact />} />
+    
 
       {/* =====================================================
           404 PAGE
