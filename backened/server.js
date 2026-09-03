@@ -1,45 +1,117 @@
+
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import mongoose from "mongoose";
+import contactRoutes from "./routes/contactRoutes.js";
+import dns from "dns";
+
+// =====================================================
+// DNS
+// =====================================================
+
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// =====================================================
+// ENVIRONMENT
+// =====================================================
 
 dotenv.config();
 
-mongoose.connect(process.env.MONGO_URI);
+// =====================================================
+// EXPRESS APP
+// =====================================================
 
 const app = express();
 
-<<<<<<< HEAD
-const mongoose = require("mongoose");
-=======
+// =====================================================
 // CORS
+// =====================================================
+
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: [
+            "http://localhost:5173",
+            "http://localhost:5174",
+        ],
         credentials: true,
     })
 );
->>>>>>> a8ac77f2350f3f588e7a2c17b961f9dd69b72701
 
-// Middleware
+// =====================================================
+// MIDDLEWARE
+// =====================================================
+
 app.use(express.json());
 
-// Connect MongoDB
+// =====================================================
+// DATABASE
+// =====================================================
+
 connectDB();
 
-// Test route
+// =====================================================
+// TEST ROUTE
+// =====================================================
+
 app.get("/", (req, res) => {
-    res.send("Hello World this is me");
+    res.status(200).send("Hello World this is me");
 });
 
-// Authentication routes
+// =====================================================
+// AUTHENTICATION ROUTES
+// =====================================================
+
 app.use("/api/auth", authRoutes);
 
-// Port
+// =====================================================
+// CONTACT ROUTES
+// =====================================================
+
+app.use("/api/contact", contactRoutes);
+
+// =====================================================
+// 404 HANDLER
+// =====================================================
+
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `Route not found: ${req.method} ${req.originalUrl}`,
+    });
+});
+
+// =====================================================
+// ERROR HANDLER
+// =====================================================
+
+app.use((err, req, res, next) => {
+    console.error("Server Error:", err);
+
+    res.status(500).json({
+        success: false,
+        message: "Internal server error",
+    });
+});
+
+// =====================================================
+// PORT
+// =====================================================
+
 const PORT = process.env.PORT || 3000;
 
+// =====================================================
+// START SERVER
+// =====================================================
+
 app.listen(PORT, () => {
+    console.log("==========================================");
     console.log(`Server is running on port ${PORT}`);
+    console.log(`http://localhost:${PORT}`);
+    console.log("------------------------------------------");
+    console.log(
+        `Contact API: POST http://localhost:${PORT}/api/contact/send`
+    );
+    console.log("==========================================");
 });

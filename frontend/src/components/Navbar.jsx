@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import {
   Bell,
@@ -13,40 +18,158 @@ import {
 } from "lucide-react";
 
 const Navbar = () => {
+  // =====================================================
+  // STATES
+  // =====================================================
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // =====================================================
+  // ROUTER
+  // =====================================================
 
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Check active page
+  // =====================================================
+  // GET USER DETAILS
+  // =====================================================
+
+  /*
+    We try different localStorage keys because your
+    login/register code may store the user differently.
+  */
+
+  const getUserDetails = () => {
+    try {
+      const storedUser =
+        localStorage.getItem("user") ||
+        localStorage.getItem("currentUser") ||
+        localStorage.getItem("userData");
+
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+
+        return {
+          name:
+            parsedUser.name ||
+            parsedUser.fullName ||
+            parsedUser.username ||
+            parsedUser.firstName ||
+            "Citizen",
+
+          email: parsedUser.email || "",
+        };
+      }
+    } catch (error) {
+      console.error("Error reading user data:", error);
+    }
+
+    // Fallback if user data is stored directly
+    const name =
+      localStorage.getItem("name") ||
+      localStorage.getItem("fullName") ||
+      localStorage.getItem("username") ||
+      "Citizen";
+
+    const email = localStorage.getItem("email") || "";
+
+    return {
+      name,
+      email,
+    };
+  };
+
+  const user = getUserDetails();
+
+  // =====================================================
+  // FIRST LETTER OF USER NAME
+  // =====================================================
+
+  const getInitial = (name) => {
+    if (!name) return "C";
+
+    return name.trim().charAt(0).toUpperCase();
+  };
+
+  const userInitial = getInitial(user.name);
+
+  // =====================================================
+  // ACTIVE PAGE
+  // =====================================================
+
   const isHome = location.pathname === "/citizen";
+
   const isAbout = location.pathname === "/citizen/about";
 
-  // Close menus
+  const isContact = location.pathname === "/contact";
+
+  // =====================================================
+  // CLOSE MENUS
+  // =====================================================
+
   const closeMenus = () => {
     setMobileOpen(false);
     setProfileOpen(false);
   };
 
-  // Logout
-  const handleLogout = () => {
-    setProfileOpen(false);
+  // =====================================================
+  // LOGOUT
+  // =====================================================
 
-    // Add your logout API/localStorage logic here later
+  const handleLogout = () => {
+    // Remove authentication token
+    localStorage.removeItem("token");
+
+    // Remove stored user information
+    localStorage.removeItem("user");
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("userData");
+
+    localStorage.removeItem("name");
+    localStorage.removeItem("fullName");
+    localStorage.removeItem("username");
+    localStorage.removeItem("email");
+
+    setProfileOpen(false);
+    setMobileOpen(false);
+
     navigate("/citizen/login");
+  };
+
+  // =====================================================
+  // PROFILE INITIAL COMPONENT
+  // =====================================================
+
+  const ProfileInitial = ({ size = "h-10 w-10" }) => {
+    return (
+      <div
+        className={`${size} flex items-center justify-center rounded-full border-2 border-white/80 bg-white text-lg font-bold text-[#063b7a]`}
+      >
+        {userInitial}
+      </div>
+    );
   };
 
   return (
     <div className="px-6 pt-3 sm:px-8 lg:px-12">
 
+      {/* =====================================================
+          NAVBAR
+      ===================================================== */}
+
       <nav className="mx-auto max-w-[1450px] overflow-visible rounded-[50px] bg-[#063b7a] text-white shadow-lg">
 
-        {/* ================= MAIN NAVBAR ================= */}
+        {/* =====================================================
+            MAIN NAVBAR
+        ===================================================== */}
 
         <div className="flex h-20 items-center justify-between px-7 sm:px-10 lg:px-12">
 
-          {/* ================= LOGO ================= */}
+          {/* =================================================
+              LOGO
+          ================================================== */}
 
           <Link
             to="/citizen"
@@ -59,6 +182,7 @@ const Navbar = () => {
             </div>
 
             <div>
+
               <h1 className="text-lg font-bold tracking-wide">
                 Municipal Services
               </h1>
@@ -66,22 +190,26 @@ const Navbar = () => {
               <p className="mt-0.5 text-[11px] text-blue-100">
                 Grievance Management System
               </p>
+
             </div>
 
           </Link>
 
 
-          {/* ================= DESKTOP NAVIGATION ================= */}
+          {/* =================================================
+              DESKTOP NAVIGATION
+          ================================================== */}
 
           <div className="hidden items-center gap-2 md:flex">
 
-            {/* HOME */}
+            {/* ================= HOME ================= */}
 
             <Link
               to="/citizen"
+              onClick={closeMenus}
               className={`rounded-xl px-6 py-2.5 text-sm font-semibold transition ${
                 isHome
-                  ? "bg-white/15"
+                  ? "bg-white/15 text-white"
                   : "text-blue-100 hover:bg-white/10 hover:text-white"
               }`}
             >
@@ -89,10 +217,11 @@ const Navbar = () => {
             </Link>
 
 
-            {/* ABOUT */}
+            {/* ================= ABOUT ================= */}
 
             <Link
               to="/citizen/about"
+              onClick={closeMenus}
               className={`rounded-xl px-6 py-2.5 text-sm font-medium transition ${
                 isAbout
                   ? "bg-white/15 text-white"
@@ -103,19 +232,26 @@ const Navbar = () => {
             </Link>
 
 
-            {/* CONTACT */}
+            {/* ================= CONTACT ================= */}
 
-            <a
-              href="#contact"
-              className="rounded-xl px-6 py-2.5 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+            <Link
+              to="/contact"
+              onClick={closeMenus}
+              className={`rounded-xl px-6 py-2.5 text-sm font-medium transition ${
+                isContact
+                  ? "bg-white/15 text-white"
+                  : "text-blue-100 hover:bg-white/10 hover:text-white"
+              }`}
             >
               Contact
-            </a>
+            </Link>
 
           </div>
 
 
-          {/* ================= RIGHT SIDE ================= */}
+          {/* =================================================
+              RIGHT SIDE
+          ================================================== */}
 
           <div className="hidden items-center gap-4 md:flex">
 
@@ -126,15 +262,17 @@ const Navbar = () => {
               className="relative flex h-11 w-11 items-center justify-center rounded-xl text-blue-100 transition hover:bg-white/10 hover:text-white"
               title="Notifications"
             >
+
               <Bell size={21} />
 
               <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-[#063b7a]">
                 3
               </span>
+
             </button>
 
 
-            {/* Divider */}
+            {/* ================= DIVIDER ================= */}
 
             <div className="h-8 w-px bg-white/15" />
 
@@ -149,21 +287,15 @@ const Navbar = () => {
                 className="flex items-center gap-3 rounded-2xl px-2.5 py-1.5 transition hover:bg-white/10"
               >
 
-                <img
-                  src="https://i.pravatar.cc/100?img=47"
-                  alt="Profile"
-                  className="h-10 w-10 rounded-full border-2 border-white/80 object-cover"
-                />
+                {/* USER FIRST LETTER */}
+
+                <ProfileInitial />
 
                 <div className="hidden text-left lg:block">
 
-                  <p className="text-sm font-semibold">
-                    Citizen
-                  </p>
+                  
 
-                  <p className="mt-0.5 text-[10px] text-blue-200">
-                    Citizen Account
-                  </p>
+                 
 
                 </div>
 
@@ -189,20 +321,20 @@ const Navbar = () => {
 
                     <div className="flex items-center gap-3">
 
-                      <img
-                        src="https://i.pravatar.cc/100?img=47"
-                        alt="Profile"
-                        className="h-11 w-11 rounded-full object-cover"
-                      />
+                      {/* USER FIRST LETTER */}
+
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#063b7a] text-lg font-bold text-white">
+                        {userInitial}
+                      </div>
 
                       <div>
 
                         <p className="font-semibold text-slate-900">
-                          Citizen
+                          {user.name}
                         </p>
 
                         <p className="text-xs text-slate-500">
-                          Citizen Account
+                          {user.email || "Citizen Account"}
                         </p>
 
                       </div>
@@ -216,22 +348,28 @@ const Navbar = () => {
 
                   <div className="p-2">
 
-                    {/* Profile */}
+                    {/* ================= PROFILE ================= */}
 
                     <button
                       type="button"
+                      onClick={() => {
+                        setProfileOpen(false);
+                        navigate("/citizen/profile");
+                      }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
+
                       <User
                         size={18}
                         className="text-slate-500"
                       />
 
                       Profile
+
                     </button>
 
 
-                    {/* Dashboard */}
+                    {/* ================= DASHBOARD ================= */}
 
                     <button
                       type="button"
@@ -241,18 +379,20 @@ const Navbar = () => {
                       }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
+
                       <LayoutDashboard
                         size={18}
                         className="text-slate-500"
                       />
 
                       Dashboard
+
                     </button>
 
                   </div>
 
 
-                  {/* Logout */}
+                  {/* ================= LOGOUT ================= */}
 
                   <div className="border-t border-slate-100 p-2">
 
@@ -261,9 +401,11 @@ const Navbar = () => {
                       onClick={handleLogout}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
                     >
+
                       <LogOut size={18} />
 
                       Logout
+
                     </button>
 
                   </div>
@@ -277,7 +419,9 @@ const Navbar = () => {
           </div>
 
 
-          {/* ================= MOBILE BUTTON ================= */}
+          {/* =================================================
+              MOBILE BUTTON
+          ================================================== */}
 
           <button
             type="button"
@@ -296,7 +440,9 @@ const Navbar = () => {
         </div>
 
 
-        {/* ================= MOBILE MENU ================= */}
+        {/* =====================================================
+            MOBILE MENU
+        ====================================================== */}
 
         {mobileOpen && (
 
@@ -304,14 +450,37 @@ const Navbar = () => {
 
             <div className="flex flex-col gap-2">
 
-              {/* Home */}
+              {/* ================= USER INFO ================= */}
+
+              <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3">
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-lg font-bold text-[#063b7a]">
+                  {userInitial}
+                </div>
+
+                <div>
+
+                  <p className="text-sm font-semibold text-white">
+                    {user.name}
+                  </p>
+
+                  <p className="text-xs text-blue-200">
+                    Citizen Account
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              {/* ================= HOME ================= */}
 
               <Link
                 to="/citizen"
                 onClick={closeMenus}
                 className={`rounded-xl px-4 py-3 text-sm font-semibold ${
                   isHome
-                    ? "bg-white/10"
+                    ? "bg-white/10 text-white"
                     : "text-blue-100 hover:bg-white/10 hover:text-white"
                 }`}
               >
@@ -319,7 +488,7 @@ const Navbar = () => {
               </Link>
 
 
-              {/* About */}
+              {/* ================= ABOUT ================= */}
 
               <Link
                 to="/citizen/about"
@@ -334,23 +503,32 @@ const Navbar = () => {
               </Link>
 
 
-              {/* Contact */}
+              {/* ================= CONTACT ================= */}
 
-              <a
-                href="#contact"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-medium text-blue-100 transition hover:bg-white/10 hover:text-white"
+              <Link
+                to="/contact"
+                onClick={closeMenus}
+                className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                  isContact
+                    ? "bg-white/10 text-white"
+                    : "text-blue-100 hover:bg-white/10 hover:text-white"
+                }`}
               >
                 Contact
-              </a>
+              </Link>
 
+
+              {/* ================= DIVIDER ================= */}
 
               <div className="my-2 h-px bg-white/10" />
 
 
-              {/* Notifications */}
+              {/* ================= NOTIFICATIONS ================= */}
 
-              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
+              >
 
                 <Bell size={19} />
 
@@ -363,9 +541,16 @@ const Navbar = () => {
               </button>
 
 
-              {/* Profile */}
+              {/* ================= PROFILE ================= */}
 
-              <button className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  navigate("/citizen/profile");
+                }}
+                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
+              >
 
                 <User size={19} />
 
@@ -374,9 +559,10 @@ const Navbar = () => {
               </button>
 
 
-              {/* Dashboard */}
+              {/* ================= DASHBOARD ================= */}
 
               <button
+                type="button"
                 onClick={() => {
                   setMobileOpen(false);
                   navigate("/citizen/dashboard");
@@ -391,9 +577,10 @@ const Navbar = () => {
               </button>
 
 
-              {/* Logout */}
+              {/* ================= LOGOUT ================= */}
 
               <button
+                type="button"
                 onClick={handleLogout}
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-red-300 hover:bg-red-500/10"
               >
