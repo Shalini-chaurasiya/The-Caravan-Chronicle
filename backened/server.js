@@ -5,6 +5,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 import dns from "dns";
 
 // =====================================================
@@ -72,6 +73,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
 
 // =====================================================
+// DASHBOARD ROUTES
+// =====================================================
+
+app.use("/api/dashboard", dashboardRoutes);
+
+// =====================================================
 // 404 HANDLER
 // =====================================================
 
@@ -112,6 +119,9 @@ app.listen(PORT, () => {
     console.log("------------------------------------------");
     console.log(
         `Contact API: POST http://localhost:${PORT}/api/contact/send`
+    );
+    console.log(
+        `Dashboard API: GET http://localhost:${PORT}/api/dashboard`
     );
     console.log("==========================================");
 });

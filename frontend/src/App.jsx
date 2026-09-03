@@ -1,17 +1,30 @@
-
 import { Routes, Route, Link } from "react-router-dom";
 
-// ================= HOME =================
-import Home from "./pages/Home";
+// =====================================================
+// MAIN PAGES
+// =====================================================
 
-// ================= CONTACT =================
+import Home from "./pages/Home";
 import Contact from "./pages/Contact";
 
-// ================= CITIZEN =================
+// =====================================================
+// CITIZEN PAGES
+// =====================================================
+
 import CitizenHome from "./pages/citizen/CitizenHome";
 import CitizenAbout from "./pages/citizen/CitizenAbout";
 import CitizenLogin from "./pages/citizen/CitizenLogin";
 import CitizenRegister from "./pages/citizen/CitizenRegister";
+
+// =====================================================
+// CITIZEN DASHBOARD
+// =====================================================
+
+//import CitizenDashboard from "./pages/citizen/dashboard/CitizenDashboard";
+
+// =====================================================
+// APP
+// =====================================================
 
 function App() {
   return (
@@ -20,65 +33,93 @@ function App() {
       {/* =====================================================
           MAIN HOME
       ===================================================== */}
+
       <Route
         path="/"
         element={<Home />}
       />
 
+
       {/* =====================================================
-          CONTACT PAGE
-          URL: http://localhost:5174/contact
+          CONTACT
       ===================================================== */}
+
       <Route
         path="/contact"
         element={<Contact />}
       />
+
 
       {/* =====================================================
           CITIZEN
       ===================================================== */}
 
       {/* Citizen Home */}
+
       <Route
         path="/citizen"
         element={<CitizenHome />}
       />
 
+
       {/* Citizen About */}
+
       <Route
         path="/citizen/about"
         element={<CitizenAbout />}
       />
 
+
       {/* Citizen Login */}
+
       <Route
         path="/citizen/login"
         element={<CitizenLogin />}
       />
 
+
       {/* Citizen Register */}
+
       <Route
         path="/citizen/register"
         element={<CitizenRegister />}
       />
 
-      {/* Forgot Password */}
+      {/* =====================================================
+          CITIZEN DASHBOARD
+      ===================================================== */}
+      <Route
+        path="/citizen/dashboard"
+        element={<CitizenDashboard />}
+      />
+
+
+      {/* =====================================================
+          FORGOT PASSWORD
+      ===================================================== */}
+
       <Route
         path="/citizen/forgot-password"
         element={<CitizenLogin />}
       />
 
-      {/* Reset Password */}
+
+      {/* =====================================================
+          RESET PASSWORD
+      ===================================================== */}
+
       <Route
         path="/reset-password/:token"
         element={<CitizenLogin />}
       />
+
 
       {/* =====================================================
           STAFF
       ===================================================== */}
 
       {/* Staff Login */}
+
       <Route
         path="/staff/login"
         element={
@@ -90,7 +131,9 @@ function App() {
         }
       />
 
+
       {/* Staff Register */}
+
       <Route
         path="/staff/register"
         element={
@@ -102,11 +145,13 @@ function App() {
         }
       />
 
+
       {/* =====================================================
           OWNER
       ===================================================== */}
 
       {/* Owner Login */}
+
       <Route
         path="/owner/login"
         element={
@@ -118,7 +163,9 @@ function App() {
         }
       />
 
+
       {/* Owner Register */}
+
       <Route
         path="/owner/register"
         element={
@@ -130,9 +177,11 @@ function App() {
         }
       />
 
+
       {/* =====================================================
           404 PAGE
       ===================================================== */}
+
       <Route
         path="*"
         element={
@@ -166,4 +215,3 @@ function App() {
 }
 
 export default App;
-
