@@ -1,20 +1,77 @@
-
 import { Routes, Route, Link } from "react-router-dom";
 
-// ================= HOME =================
-import Home from "./pages/Home";
+// =====================================================
+// MAIN PAGES
+// =====================================================
 
-// ================= CONTACT =================
+import Home from "./pages/Home";
 import Contact from "./pages/Contact";
 
-// ================= CITIZEN =================
+// =====================================================
+// CITIZEN PAGES
+// =====================================================
+
 import CitizenHome from "./pages/citizen/CitizenHome";
 import CitizenAbout from "./pages/citizen/CitizenAbout";
 import CitizenLogin from "./pages/citizen/CitizenLogin";
-import CitizenRegister from "./pages/citizen/CitizenRegister"; 
+import CitizenRegister from "./pages/citizen/CitizenRegister";
 
+// =====================================================
+// CITIZEN DASHBOARD
+// =====================================================
 
+import CitizenDashboard from "./pages/citizen/dashboard/CitizenDashboard";
+import NewComplaint from "./pages/citizen/dashboard/NewComplaints";
 
+// =====================================================
+// TEMPORARY DASHBOARD PAGES
+// =====================================================
+
+function MyComplaints() {
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h1 className="text-3xl font-bold text-gray-800">
+        My Complaints
+      </h1>
+
+      <p className="mt-2 text-gray-600">
+        View your submitted complaints here.
+      </p>
+    </div>
+  );
+}
+
+function Notifications() {
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h1 className="text-3xl font-bold text-gray-800">
+        Notifications
+      </h1>
+
+      <p className="mt-2 text-gray-600">
+        Your notifications will appear here.
+      </p>
+    </div>
+  );
+}
+
+function TrackComplaints() {
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h1 className="text-3xl font-bold text-gray-800">
+        Track Complaints
+      </h1>
+
+      <p className="mt-2 text-gray-600">
+        Track the status of your complaints here.
+      </p>
+    </div>
+  );
+}
+
+// =====================================================
+// APP
+// =====================================================
 
 function App() {
   return (
@@ -23,15 +80,16 @@ function App() {
       {/* =====================================================
           MAIN HOME
       ===================================================== */}
+
       <Route
         path="/"
         element={<Home />}
       />
 
       {/* =====================================================
-          CONTACT PAGE
-          URL: http://localhost:5174/contact
+          CONTACT
       ===================================================== */}
+
       <Route
         path="/contact"
         element={<Contact />}
@@ -65,13 +123,56 @@ function App() {
         element={<CitizenRegister />}
       />
 
-      {/* Forgot Password */}
+      {/* =====================================================
+          CITIZEN DASHBOARD
+      ===================================================== */}
+
+      <Route
+        path="/citizen/dashboard"
+        element={<CitizenDashboard />}
+      />
+
+      {/* =====================================================
+          DASHBOARD SIDEBAR ROUTES
+      ===================================================== */}
+
+      {/* My Complaints */}
+      <Route
+        path="/citizen/dashboard/complaints"
+        element={<MyComplaints />}
+      />
+
+      {/* New Complaint */}
+      <Route
+        path="/citizen/dashboard/new"
+        element={<NewComplaint />}
+      />
+
+      {/* Notifications */}
+      <Route
+        path="/citizen/dashboard/notifications"
+        element={<Notifications />}
+      />
+
+      {/* Track Complaints */}
+      <Route
+        path="/citizen/dashboard/track"
+        element={<TrackComplaints />}
+      />
+
+      {/* =====================================================
+          FORGOT PASSWORD
+      ===================================================== */}
+
       <Route
         path="/citizen/forgot-password"
         element={<CitizenLogin />}
       />
 
-      {/* Reset Password */}
+      {/* =====================================================
+          RESET PASSWORD
+      ===================================================== */}
+
       <Route
         path="/reset-password/:token"
         element={<CitizenLogin />}
@@ -81,7 +182,6 @@ function App() {
           STAFF
       ===================================================== */}
 
-      {/* Staff Login */}
       <Route
         path="/staff/login"
         element={
@@ -93,7 +193,6 @@ function App() {
         }
       />
 
-      {/* Staff Register */}
       <Route
         path="/staff/register"
         element={
@@ -109,7 +208,6 @@ function App() {
           OWNER
       ===================================================== */}
 
-      {/* Owner Login */}
       <Route
         path="/owner/login"
         element={
@@ -121,7 +219,6 @@ function App() {
         }
       />
 
-      {/* Owner Register */}
       <Route
         path="/owner/register"
         element={
@@ -132,16 +229,15 @@ function App() {
           </div>
         }
       />
-    
 
       {/* =====================================================
           404 PAGE
       ===================================================== */}
+
       <Route
         path="*"
         element={
           <div className="flex min-h-screen items-center justify-center bg-gray-50">
-
             <div className="text-center">
 
               <h1 className="text-6xl font-bold text-gray-800">
@@ -153,20 +249,19 @@ function App() {
               </p>
 
               <Link
-                to="/"
+                to="/citizen/dashboard"
                 className="mt-6 inline-block rounded-lg bg-blue-700 px-6 py-3 font-medium text-white transition hover:bg-blue-800"
               >
-                Go Home
+                Go to Dashboard
               </Link>
 
             </div>
-
           </div>
         }
       />
+
     </Routes>
   );
 }
 
 export default App;
-

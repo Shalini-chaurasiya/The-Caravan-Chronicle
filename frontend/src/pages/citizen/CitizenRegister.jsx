@@ -22,55 +22,66 @@ const CitizenRegister = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    setError("");
-    setSuccess("");
-    setLoading(true);
+  setError("");
+  setSuccess("");
+  setLoading(true);
+
+  try {
+    console.log("API URL:", import.meta.env.VITE_API_URL);
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/auth/register`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      }
+    );
+
+    const text = await response.text();
+
+    console.log("STATUS:", response.status);
+    console.log("RAW RESPONSE:", text);
+
+    let data;
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
-      }
-
-      console.log("Registration Response:", data);
-
-      setSuccess(
-        "Registration successful! Redirecting to login..."
-      );
-
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-      });
-
-      setTimeout(() => {
-        navigate("/citizen/login");
-      }, 1500);
-
-    } catch (error) {
-      console.error("Registration Error:", error);
-
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      data = text ? JSON.parse(text) : {};
+    } catch (err) {
+      console.error("Invalid JSON received:", text);
+      throw new Error("Server returned invalid JSON");
     }
-  };
 
+    if (!response.ok) {
+      throw new Error(data.message || "Registration failed");
+    }
+
+    console.log("Registration Response:", data);
+
+    setSuccess(
+      "Registration successful! Redirecting to login..."
+    );
+
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+    });
+
+    setTimeout(() => {
+      navigate("/citizen/login");
+    }, 1500);
+
+  } catch (error) {
+    console.error("Registration Error:", error);
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
 
