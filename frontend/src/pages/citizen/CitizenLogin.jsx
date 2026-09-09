@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -6,23 +5,47 @@ const CitizenLogin = () => {
   const navigate = useNavigate();
   const { token } = useParams();
 
-  // If token exists, show reset password form
+  // =====================================================
+  // API URL
+  // =====================================================
+
+  const API_URL =
+    import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  // =====================================================
+  // MODE
+  // =====================================================
+
+  // If token exists in URL, show reset password form
   const [mode, setMode] = useState(token ? "reset" : "login");
 
-  // LOGIN
+  // =====================================================
+  // LOGIN DATA
+  // =====================================================
+
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
   });
 
-  // FORGOT PASSWORD
+  // =====================================================
+  // FORGOT PASSWORD DATA
+  // =====================================================
+
   const [forgotEmail, setForgotEmail] = useState("");
 
-  // RESET PASSWORD
+  // =====================================================
+  // RESET PASSWORD DATA
+  // =====================================================
+
   const [resetData, setResetData] = useState({
     password: "",
     confirmPassword: "",
   });
+
+  // =====================================================
+  // COMMON STATE
+  // =====================================================
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,36 +70,88 @@ const CitizenLogin = () => {
     setLoading(true);
 
     try {
-     const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/auth/login`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(loginData),
-  }
-);
+      // Debug information
+      console.log("API URL:", API_URL);
+      console.log(
+        "Login endpoint:",
+        `${API_URL}/api/auth/login`
+      );
 
-      const data = await response.json();
+      const response = await fetch(
+        `${API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(loginData),
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+      // Safely read response
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      let data = {};
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        console.error(
+          "Non-JSON server response:",
+          text
+        );
+
+        data = {
+          message:
+            text ||
+            `Server returned status ${response.status}`,
+        };
       }
 
-      // Save JWT token
+      // Handle HTTP errors
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            `Login failed with status ${response.status}`
+        );
+      }
+
+      // Make sure token exists
+      if (!data.token) {
+        throw new Error(
+          "Login succeeded but no authentication token was received."
+        );
+      }
+
+      // =====================================================
+      // SAVE LOGIN INFORMATION
+      // =====================================================
+
       localStorage.setItem("token", data.token);
 
-      // Save user information
-      localStorage.setItem("user", JSON.stringify(data.user));
+      if (data.user) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.user)
+        );
+      }
 
-      // Redirect to Citizen Home
+      console.log("Login successful:", data);
+
+      // =====================================================
+      // REDIRECT
+      // =====================================================
+
       navigate("/citizen/");
     } catch (error) {
       console.error("Login Error:", error);
 
       setError(
-        error.message || "Unable to login. Please try again."
+        error.message ||
+          "Unable to login. Please try again."
       );
     } finally {
       setLoading(false);
@@ -95,8 +170,13 @@ const CitizenLogin = () => {
     setLoading(true);
 
     try {
+      console.log(
+        "Forgot password endpoint:",
+        `${API_URL}/api/auth/forgot-password`
+      );
+
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/auth/forgot-password`,
+        `${API_URL}/api/auth/forgot-password`,
         {
           method: "POST",
           headers: {
@@ -108,11 +188,28 @@ const CitizenLogin = () => {
         }
       );
 
-      const data = await response.json();
+      // Safely parse response
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      let data = {};
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        data = {
+          message:
+            text ||
+            `Server returned status ${response.status}`,
+        };
+      }
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Unable to send reset link"
+          data.message ||
+            "Unable to send password reset link."
         );
       }
 
@@ -123,10 +220,14 @@ const CitizenLogin = () => {
 
       setForgotEmail("");
     } catch (error) {
-      console.error("Forgot Password Error:", error);
+      console.error(
+        "Forgot Password Error:",
+        error
+      );
 
       setError(
-        error.message || "Unable to send reset link."
+        error.message ||
+          "Unable to send reset link."
       );
     } finally {
       setLoading(false);
@@ -150,7 +251,10 @@ const CitizenLogin = () => {
     setError("");
     setSuccess("");
 
-    // Check password match
+    // =====================================================
+    // VALIDATE PASSWORD
+    // =====================================================
+
     if (
       resetData.password !==
       resetData.confirmPassword
@@ -159,7 +263,6 @@ const CitizenLogin = () => {
       return;
     }
 
-    // Check password length
     if (resetData.password.length < 6) {
       setError(
         "Password must be at least 6 characters."
@@ -167,11 +270,23 @@ const CitizenLogin = () => {
       return;
     }
 
+    if (!token) {
+      setError(
+        "Password reset token is missing or invalid."
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
+      console.log(
+        "Reset password endpoint:",
+        `${API_URL}/api/auth/reset-password/${token}`
+      );
+
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
+        `${API_URL}/api/auth/reset-password/${token}`,
         {
           method: "POST",
           headers: {
@@ -183,16 +298,34 @@ const CitizenLogin = () => {
         }
       );
 
-      const data = await response.json();
+      // Safely parse response
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      let data = {};
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+
+        data = {
+          message:
+            text ||
+            `Server returned status ${response.status}`,
+        };
+      }
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Password reset failed"
+          data.message ||
+            "Password reset failed."
         );
       }
 
       setSuccess(
-        "Password reset successfully."
+        data.message ||
+          "Password reset successfully."
       );
 
       setResetData({
@@ -200,15 +333,22 @@ const CitizenLogin = () => {
         confirmPassword: "",
       });
 
-      // Go back to login after 2 seconds
+      // =====================================================
+      // REDIRECT TO LOGIN
+      // =====================================================
+
       setTimeout(() => {
         navigate("/citizen/login");
       }, 2000);
     } catch (error) {
-      console.error("Reset Password Error:", error);
+      console.error(
+        "Reset Password Error:",
+        error
+      );
 
       setError(
-        error.message || "Password reset failed."
+        error.message ||
+          "Password reset failed."
       );
     } finally {
       setLoading(false);
@@ -306,7 +446,9 @@ const CitizenLogin = () => {
             disabled={loading}
             className="w-full rounded-lg bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading
+              ? "Logging in..."
+              : "Login"}
           </button>
         </form>
 
@@ -507,7 +649,8 @@ const CitizenLogin = () => {
         )}
 
         {/* Current Page */}
-        {mode === "login" && renderLogin()}
+        {mode === "login" &&
+          renderLogin()}
 
         {mode === "forgot" &&
           renderForgotPassword()}
