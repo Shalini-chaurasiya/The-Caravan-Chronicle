@@ -1,127 +1,145 @@
+import "dotenv/config";
 
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
+import dns from "dns";
+
 import connectDB from "./config/db.js";
+
 import authRoutes from "./routes/authRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
-import dns from "dns";
+import complaintRoutes from "./routes/complaintRoutes.js";
 
-// =====================================================
-// DNS
-// =====================================================
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+dns.setServers([
+  "8.8.8.8",
+  "8.8.4.4"
+]);
 
-// =====================================================
-// ENVIRONMENT
-// =====================================================
-
-dotenv.config();
-
-// =====================================================
-// EXPRESS APP
-// =====================================================
 
 const app = express();
 
-// =====================================================
-// CORS
-// =====================================================
 
 app.use(
-    cors({
-        origin: [
-            "http://localhost:5173",
-            "http://localhost:5174",
-        ],
-        credentials: true,
-    })
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+    ],
+    credentials: true,
+  })
 );
 
-// =====================================================
-// MIDDLEWARE
-// =====================================================
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// =====================================================
-// DATABASE
-// =====================================================
-
-connectDB();
-
-// =====================================================
-// TEST ROUTE
-// =====================================================
 
 app.get("/", (req, res) => {
-    res.status(200).send("Hello World this is me");
+
+  res.status(200).json({
+    success: true,
+    message: "Caravan Chronicle Backend is running",
+  });
+
 });
 
-// =====================================================
-// AUTHENTICATION ROUTES
-// =====================================================
 
 app.use("/api/auth", authRoutes);
 
-// =====================================================
-// CONTACT ROUTES
-// =====================================================
-
 app.use("/api/contact", contactRoutes);
-
-// =====================================================
-// DASHBOARD ROUTES
-// =====================================================
 
 app.use("/api/dashboard", dashboardRoutes);
 
-// =====================================================
-// 404 HANDLER
-// =====================================================
+app.use("/api/complaints", complaintRoutes);
+
 
 app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: `Route not found: ${req.method} ${req.originalUrl}`,
-    });
+
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
+  });
+
 });
 
-// =====================================================
-// ERROR HANDLER
-// =====================================================
 
 app.use((err, req, res, next) => {
-    console.error("Server Error:", err);
 
-    res.status(500).json({
-        success: false,
-        message: "Internal server error",
-    });
+  console.error("Server Error:", err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
+
 });
 
-// =====================================================
-// PORT
-// =====================================================
 
 const PORT = process.env.PORT || 3000;
 
-// =====================================================
-// START SERVER
-// =====================================================
 
-app.listen(PORT, () => {
-    console.log("==========================================");
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`http://localhost:${PORT}`);
-    console.log("------------------------------------------");
-    console.log(
-        `Contact API: POST http://localhost:${PORT}/api/contact/send`
-    );
-    console.log(
-        `Dashboard API: GET http://localhost:${PORT}/api/dashboard`
-    );
-    console.log("==========================================");
-});
+const startServer = async () => {
+
+  try {
+
+    console.log("Connecting to MongoDB...");
+
+    await connectDB();
+
+    console.log("MongoDB connected successfully");
+
+
+    app.listen(PORT, () => {
+
+      console.log("==========================================");
+      console.log("       CARAVAN CHRONICLE BACKEND");
+      console.log("==========================================");
+
+      console.log(
+        `Server running on port: ${PORT}`
+      );
+
+      console.log(
+        `Server URL: http://localhost:${PORT}`
+      );
+
+      console.log("------------------------------------------");
+
+      console.log(
+        `Auth API:       http://localhost:${PORT}/api/auth`
+      );
+
+      console.log(
+        `Contact API:    http://localhost:${PORT}/api/contact`
+      );
+
+      console.log(
+        `Dashboard API:  http://localhost:${PORT}/api/dashboard`
+      );
+
+      console.log(
+        `Complaint API:  http://localhost:${PORT}/api/complaints`
+      );
+
+      console.log("==========================================");
+
+    });
+
+  } catch (error) {
+
+    console.error("==========================================");
+    console.error("SERVER STARTUP FAILED");
+    console.error("==========================================");
+
+    console.error(error.message);
+
+    process.exit(1);
+
+  }
+
+};
+
+
+startServer();

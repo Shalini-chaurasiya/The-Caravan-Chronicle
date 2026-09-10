@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   MapPin,
@@ -26,6 +27,7 @@ const NewComplaint = () => {
   });
 
   const [fileName, setFileName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // =====================================================
   // LOCATION STATES
@@ -91,7 +93,6 @@ const NewComplaint = () => {
 
     if (!file) return;
 
-    // Check file type
     const allowedTypes = [
       "image/jpeg",
       "image/jpg",
@@ -100,12 +101,13 @@ const NewComplaint = () => {
 
     if (!allowedTypes.includes(file.type)) {
       alert("Please upload a JPG, JPEG or PNG image.");
+      e.target.value = "";
       return;
     }
 
-    // Check file size - 5MB
     if (file.size > 5 * 1024 * 1024) {
       alert("Image size must be less than 5MB.");
+      e.target.value = "";
       return;
     }
 
@@ -128,10 +130,16 @@ const NewComplaint = () => {
     }));
 
     setFileName("");
+
+    const input = document.getElementById("photo");
+
+    if (input) {
+      input.value = "";
+    }
   };
 
   // =====================================================
-  // OPEN LOCATION
+  // OPEN LOCATION BOX
   // =====================================================
 
   const openLocationBox = () => {
@@ -140,7 +148,7 @@ const NewComplaint = () => {
   };
 
   // =====================================================
-  // CLOSE LOCATION
+  // CLOSE LOCATION BOX
   // =====================================================
 
   const closeLocationBox = () => {
@@ -170,16 +178,6 @@ const NewComplaint = () => {
         const longitude = position.coords.longitude;
 
         try {
-          /*
-            Reverse geocoding using OpenStreetMap Nominatim.
-
-            This converts:
-            latitude + longitude
-
-            into:
-            readable address
-          */
-
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
             {
@@ -211,11 +209,6 @@ const NewComplaint = () => {
           setLocationOpen(false);
         } catch (error) {
           console.error("Location Error:", error);
-
-          /*
-            Even if address lookup fails,
-            save coordinates.
-          */
 
           setFormData((prev) => ({
             ...prev,
@@ -290,17 +283,27 @@ const NewComplaint = () => {
   };
 
   // =====================================================
-  // SUBMIT
+  // SUBMIT COMPLAINT
   // =====================================================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Determine final complaint type
+    // Prevent duplicate submissions
+    if (submitting) return;
+
+    // =====================================================
+    // FINAL COMPLAINT TYPE
+    // =====================================================
+
     const finalComplaintType =
       formData.complaintType === "Other"
         ? formData.customComplaintType.trim()
         : formData.complaintType;
+
+    // =====================================================
+    // VALIDATION
+    // =====================================================
 
     if (!finalComplaintType) {
       alert("Please select or enter a complaint type.");
@@ -317,33 +320,159 @@ const NewComplaint = () => {
       return;
     }
 
-    // Data that will eventually go to backend
-    const complaintData = {
-      complaintType: finalComplaintType,
-      location: formData.location,
-      latitude: formData.latitude,
-      longitude: formData.longitude,
-      description: formData.description,
-      photo: formData.photo,
-    };
+    try {
+      setSubmitting(true);
 
-    console.log("Complaint Data:", complaintData);
+      // =====================================================
+      // CREATE FORMDATA
+      // =====================================================
 
-    alert("Complaint submitted successfully!");
+      const data = new FormData();
 
-    // Reset form
-    setFormData({
-      complaintType: "",
-      customComplaintType: "",
-      location: "",
-      latitude: null,
-      longitude: null,
-      description: "",
-      photo: null,
-    });
+      data.append(
+        "complaintType",
+        finalComplaintType
+      );
 
-    setFileName("");
-    setLocationSearch("");
+      data.append(
+        "location",
+        formData.location
+      );
+
+      // Only append coordinates when available
+      if (
+        formData.latitude !== null &&
+        formData.latitude !== undefined
+      ) {
+        data.append(
+          "latitude",
+          formData.latitude
+        );
+      }
+
+      if (
+        formData.longitude !== null &&
+        formData.longitude !== undefined
+      ) {
+        data.append(
+          "longitude",
+          formData.longitude
+        );
+      }
+
+      data.append(
+        "description",
+        formData.description.trim()
+      );
+
+      // =====================================================
+      // ADD PHOTO
+      // =====================================================
+
+      if (formData.photo) {
+        data.append(
+          "photo",
+          formData.photo
+        );
+      }
+
+      // =====================================================
+      // DEBUG FORMDATA
+      // =====================================================
+
+      console.log(
+        "Submitting complaint..."
+      );
+
+      for (const [key, value] of data.entries()) {
+        console.log(
+          key,
+          value instanceof File
+            ? value.name
+            : value
+        );
+      }
+
+      // =====================================================
+      // SEND TO BACKEND
+      // =====================================================
+
+      const response = await fetch(
+        "http://localhost:3000/api/complaints/",
+        {
+          method: "POST",
+          body: data,
+        }
+      );
+
+      // =====================================================
+      // READ RESPONSE
+      // =====================================================
+
+      const result = await response.json();
+
+      console.log(
+        "Backend response:",
+        result
+      );
+
+      // =====================================================
+      // HANDLE ERROR
+      // =====================================================
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error ||
+          result.message ||
+          "Failed to submit complaint"
+        );
+      }
+
+      // =====================================================
+      // SUCCESS
+      // =====================================================
+
+      alert(
+        "Complaint submitted successfully!"
+      );
+
+      // =====================================================
+      // RESET FORM
+      // =====================================================
+
+      setFormData({
+        complaintType: "",
+        customComplaintType: "",
+        location: "",
+        latitude: null,
+        longitude: null,
+        description: "",
+        photo: null,
+      });
+
+      setFileName("");
+      setLocationSearch("");
+
+      const input =
+        document.getElementById("photo");
+
+      if (input) {
+        input.value = "";
+      }
+
+    } catch (error) {
+      console.error(
+        "Complaint Submission Error:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Failed to submit complaint. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // =====================================================
@@ -373,7 +502,6 @@ const NewComplaint = () => {
 
       </div>
 
-
       {/* =====================================================
           CONTENT
       ===================================================== */}
@@ -401,7 +529,6 @@ const NewComplaint = () => {
               </p>
 
             </div>
-
 
             {/* =====================================================
                 FORM
@@ -460,7 +587,6 @@ const NewComplaint = () => {
 
               </div>
 
-
               {/* =================================================
                   OTHER COMPLAINT TYPE
               ================================================= */}
@@ -495,7 +621,6 @@ const NewComplaint = () => {
 
               )}
 
-
               {/* =================================================
                   LOCATION
               ================================================= */}
@@ -505,11 +630,6 @@ const NewComplaint = () => {
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Location
                 </label>
-
-
-                {/* =================================================
-                    SELECTED LOCATION / OPEN BUTTON
-                ================================================= */}
 
                 <button
                   type="button"
@@ -534,7 +654,6 @@ const NewComplaint = () => {
                         <p className="truncate text-sm text-slate-700">
                           {formData.location}
                         </p>
-
                       </>
 
                     ) : (
@@ -554,7 +673,6 @@ const NewComplaint = () => {
 
                 </button>
 
-
                 {/* =================================================
                     LOCATION PANEL
                 ================================================= */}
@@ -562,8 +680,6 @@ const NewComplaint = () => {
                 {locationOpen && (
 
                   <div className="relative z-20 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-
-                    {/* ================= PANEL HEADER ================= */}
 
                     <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
 
@@ -594,9 +710,6 @@ const NewComplaint = () => {
 
                     </div>
 
-
-                    {/* ================= SEARCH ================= */}
-
                     <div className="p-4">
 
                       <div className="relative">
@@ -610,7 +723,9 @@ const NewComplaint = () => {
                           type="text"
                           value={locationSearch}
                           onChange={(e) => {
-                            setLocationSearch(e.target.value);
+                            setLocationSearch(
+                              e.target.value
+                            );
                             setLocationError("");
                           }}
                           placeholder="Search area, street, landmark..."
@@ -620,8 +735,7 @@ const NewComplaint = () => {
 
                       </div>
 
-
-                      {/* ================= CURRENT LOCATION ================= */}
+                      {/* CURRENT LOCATION */}
 
                       <button
                         type="button"
@@ -668,8 +782,7 @@ const NewComplaint = () => {
 
                       </button>
 
-
-                      {/* ================= DIVIDER ================= */}
+                      {/* DIVIDER */}
 
                       <div className="my-4 flex items-center gap-3">
 
@@ -683,8 +796,7 @@ const NewComplaint = () => {
 
                       </div>
 
-
-                      {/* ================= USE SEARCHED LOCATION ================= */}
+                      {/* MANUAL LOCATION */}
 
                       <button
                         type="button"
@@ -695,8 +807,7 @@ const NewComplaint = () => {
                         Use This Location
                       </button>
 
-
-                      {/* ================= ERROR ================= */}
+                      {/* ERROR */}
 
                       {locationError && (
 
@@ -713,7 +824,6 @@ const NewComplaint = () => {
                 )}
 
               </div>
-
 
               {/* =================================================
                   LOCATION INFORMATION
@@ -740,8 +850,8 @@ const NewComplaint = () => {
                         {formData.location}
                       </p>
 
-                      {formData.latitude &&
-                        formData.longitude && (
+                      {formData.latitude !== null &&
+                        formData.longitude !== null && (
 
                           <p className="mt-1 text-[10px] text-slate-400">
                             Coordinates:{" "}
@@ -758,7 +868,6 @@ const NewComplaint = () => {
                 </div>
 
               )}
-
 
               {/* =================================================
                   DESCRIPTION
@@ -785,7 +894,6 @@ const NewComplaint = () => {
                 />
 
               </div>
-
 
               {/* =================================================
                   PHOTO
@@ -861,19 +969,32 @@ const NewComplaint = () => {
 
               </div>
 
-
               {/* =================================================
                   SUBMIT
               ================================================= */}
 
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 active:scale-[0.99]"
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
 
-                <Send size={18} />
+                {submitting ? (
+                  <>
+                    <Loader2
+                      size={18}
+                      className="animate-spin"
+                    />
 
-                Submit Complaint
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+
+                    Submit Complaint
+                  </>
+                )}
 
               </button>
 
