@@ -17,57 +17,15 @@ import CitizenLogin from "./pages/citizen/CitizenLogin";
 import CitizenRegister from "./pages/citizen/CitizenRegister";
 
 // =====================================================
-// CITIZEN DASHBOARD
+// CITIZEN DASHBOARD PAGES
 // =====================================================
 
 import CitizenDashboard from "./pages/citizen/dashboard/CitizenDashboard";
-import NewComplaint from "./pages/citizen/dashboard/NewComplaints";
-
-// =====================================================
-// TEMPORARY DASHBOARD PAGES
-// =====================================================
-
-function MyComplaints() {
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-3xl font-bold text-gray-800">
-        My Complaints
-      </h1>
-
-      <p className="mt-2 text-gray-600">
-        View your submitted complaints here.
-      </p>
-    </div>
-  );
-}
-
-function Notifications() {
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-3xl font-bold text-gray-800">
-        Notifications
-      </h1>
-
-      <p className="mt-2 text-gray-600">
-        Your notifications will appear here.
-      </p>
-    </div>
-  );
-}
-
-function TrackComplaints() {
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-3xl font-bold text-gray-800">
-        Track Complaints
-      </h1>
-
-      <p className="mt-2 text-gray-600">
-        Track the status of your complaints here.
-      </p>
-    </div>
-  );
-}
+import MyComplaints from "./pages/citizen/dashboard/MyComplaints";
+import NewComplaints from "./pages/citizen/dashboard/NewComplaints";
+import ComplaintDetails from "./pages/citizen/dashboard/ComplaintDetails";
+import Notifications from "./pages/citizen/dashboard/Notifications";
+import TrackComplaints from "./pages/citizen/dashboard/TrackComplaints";
 
 // =====================================================
 // APP
@@ -86,6 +44,7 @@ function App() {
         element={<Home />}
       />
 
+
       {/* =====================================================
           CONTACT
       ===================================================== */}
@@ -95,33 +54,42 @@ function App() {
         element={<Contact />}
       />
 
+
       {/* =====================================================
           CITIZEN
       ===================================================== */}
 
       {/* Citizen Home */}
+
       <Route
         path="/citizen"
         element={<CitizenHome />}
       />
 
+
       {/* Citizen About */}
+
       <Route
         path="/citizen/about"
         element={<CitizenAbout />}
       />
 
+
       {/* Citizen Login */}
+
       <Route
         path="/citizen/login"
         element={<CitizenLogin />}
       />
 
+
       {/* Citizen Register */}
+
       <Route
         path="/citizen/register"
         element={<CitizenRegister />}
       />
+
 
       {/* =====================================================
           CITIZEN DASHBOARD
@@ -132,33 +100,59 @@ function App() {
         element={<CitizenDashboard />}
       />
 
+
       {/* =====================================================
-          DASHBOARD SIDEBAR ROUTES
+          MY COMPLAINTS
       ===================================================== */}
 
-      {/* My Complaints */}
       <Route
         path="/citizen/dashboard/complaints"
         element={<MyComplaints />}
       />
 
-      {/* New Complaint */}
+
+      {/* =====================================================
+          NEW COMPLAINT
+      ===================================================== */}
+
       <Route
         path="/citizen/dashboard/new"
-        element={<NewComplaint />}
+        element={<NewComplaints />}
       />
 
-      {/* Notifications */}
+
+      {/* =====================================================
+          COMPLAINT DETAILS
+          
+          Example:
+          /citizen/dashboard/complaints/CMP-2026-00124
+      ===================================================== */}
+
+      <Route
+        path="/citizen/dashboard/complaints/:complaintId"
+        element={<ComplaintDetails />}
+      />
+
+
+      {/* =====================================================
+          NOTIFICATIONS
+      ===================================================== */}
+
       <Route
         path="/citizen/dashboard/notifications"
         element={<Notifications />}
       />
 
-      {/* Track Complaints */}
+
+      {/* =====================================================
+          TRACK COMPLAINTS
+      ===================================================== */}
+
       <Route
         path="/citizen/dashboard/track"
         element={<TrackComplaints />}
       />
+
 
       {/* =====================================================
           FORGOT PASSWORD
@@ -169,6 +163,7 @@ function App() {
         element={<CitizenLogin />}
       />
 
+
       {/* =====================================================
           RESET PASSWORD
       ===================================================== */}
@@ -178,9 +173,12 @@ function App() {
         element={<CitizenLogin />}
       />
 
+
       {/* =====================================================
           STAFF
       ===================================================== */}
+
+      {/* Staff Login */}
 
       <Route
         path="/staff/login"
@@ -193,6 +191,9 @@ function App() {
         }
       />
 
+
+      {/* Staff Register */}
+
       <Route
         path="/staff/register"
         element={
@@ -204,9 +205,12 @@ function App() {
         }
       />
 
+
       {/* =====================================================
           OWNER
       ===================================================== */}
+
+      {/* Owner Login */}
 
       <Route
         path="/owner/login"
@@ -219,6 +223,9 @@ function App() {
         }
       />
 
+
+      {/* Owner Register */}
+
       <Route
         path="/owner/register"
         element={
@@ -230,6 +237,7 @@ function App() {
         }
       />
 
+
       {/* =====================================================
           404 PAGE
       ===================================================== */}
@@ -238,6 +246,7 @@ function App() {
         path="*"
         element={
           <div className="flex min-h-screen items-center justify-center bg-gray-50">
+
             <div className="text-center">
 
               <h1 className="text-6xl font-bold text-gray-800">
@@ -256,6 +265,7 @@ function App() {
               </Link>
 
             </div>
+
           </div>
         }
       />
