@@ -15,6 +15,7 @@ import CitizenHome from "./pages/citizen/CitizenHome";
 import CitizenAbout from "./pages/citizen/CitizenAbout";
 import CitizenLogin from "./pages/citizen/CitizenLogin";
 import CitizenRegister from "./pages/citizen/CitizenRegister";
+import Profile from "./pages/citizen/Profile";
 
 // =====================================================
 // CITIZEN DASHBOARD PAGES
@@ -91,6 +92,19 @@ function App() {
       />
 
 
+
+
+      {/* =====================================================
+          CITIZEN PROFILE
+      ===================================================== */}
+
+      <Route
+        path="/citizen/profile"
+        element={<Profile />}
+      />
+
+
+
       {/* =====================================================
           CITIZEN DASHBOARD
       ===================================================== */}
@@ -123,9 +137,8 @@ function App() {
 
       {/* =====================================================
           COMPLAINT DETAILS
-          
-          Example:
-          /citizen/dashboard/complaints/CMP-2026-00124
+
+
       ===================================================== */}
 
       <Route
