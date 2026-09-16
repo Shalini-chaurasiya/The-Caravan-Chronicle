@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   Link,
@@ -18,12 +18,20 @@ import {
 } from "lucide-react";
 
 const Navbar = () => {
+
   // =====================================================
   // STATES
   // =====================================================
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [user, setUser] = useState({
+    name: "Citizen",
+    email: "",
+    profileImage: "",
+  });
+
 
   // =====================================================
   // ROUTER
@@ -32,127 +40,230 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+
   // =====================================================
-  // GET USER DETAILS
+  // API URL
   // =====================================================
 
-  /*
-    We try different localStorage keys because your
-    login/register code may store the user differently.
-  */
+  const API_URL = import.meta.env.VITE_API_URL;
 
-  const getUserDetails = () => {
-    try {
-      const storedUser =
-        localStorage.getItem("user") ||
-        localStorage.getItem("currentUser") ||
-        localStorage.getItem("userData");
 
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
+  // =====================================================
+  // GET PROFILE FROM BACKEND
+  // =====================================================
 
-        return {
-          name:
-            parsedUser.name ||
-            parsedUser.fullName ||
-            parsedUser.username ||
-            parsedUser.firstName ||
-            "Citizen",
+  useEffect(() => {
 
-          email: parsedUser.email || "",
-        };
+    const fetchProfile = async () => {
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        return;
       }
-    } catch (error) {
-      console.error("Error reading user data:", error);
+
+      try {
+
+        const response = await fetch(
+          `${API_URL}/api/profile`,
+          {
+            method: "GET",
+
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+
+        if (!response.ok) {
+
+          console.log("Could not fetch profile");
+
+          return;
+        }
+
+
+        const data = await response.json();
+
+
+        if (data.success && data.user) {
+
+          setUser({
+            name: data.user.name || "Citizen",
+
+            email: data.user.email || "",
+
+            profileImage: data.user.profileImage || "",
+          });
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Navbar Profile Error:",
+          error
+        );
+
+      }
+
+    };
+
+
+    fetchProfile();
+
+  }, [API_URL, location.pathname]);
+
+
+  // =====================================================
+  // PROFILE IMAGE URL
+  // =====================================================
+
+  const getProfileImage = () => {
+
+    if (!user.profileImage) {
+      return "";
     }
 
-    // Fallback if user data is stored directly
-    const name =
-      localStorage.getItem("name") ||
-      localStorage.getItem("fullName") ||
-      localStorage.getItem("username") ||
-      "Citizen";
+    // If backend already returns complete URL
+    if (
+      user.profileImage.startsWith("http://") ||
+      user.profileImage.startsWith("https://")
+    ) {
+      return user.profileImage;
+    }
 
-    const email = localStorage.getItem("email") || "";
+    // Backend returns:
+    // /uploads/profile/filename.png
 
-    return {
-      name,
-      email,
-    };
+    return `${API_URL}${user.profileImage}`;
+
   };
 
-  const user = getUserDetails();
 
   // =====================================================
-  // FIRST LETTER OF USER NAME
+  // FIRST LETTER
   // =====================================================
 
   const getInitial = (name) => {
-    if (!name) return "C";
 
-    return name.trim().charAt(0).toUpperCase();
+    if (!name) {
+      return "C";
+    }
+
+    return name
+      .trim()
+      .charAt(0)
+      .toUpperCase();
+
   };
 
+
   const userInitial = getInitial(user.name);
+
 
   // =====================================================
   // ACTIVE PAGE
   // =====================================================
 
-  const isHome = location.pathname === "/citizen";
+  const isHome =
+    location.pathname === "/citizen";
 
-  const isAbout = location.pathname === "/citizen/about";
+  const isAbout =
+    location.pathname === "/citizen/about";
 
-  const isContact = location.pathname === "/contact";
+  const isContact =
+    location.pathname === "/contact";
+
 
   // =====================================================
   // CLOSE MENUS
   // =====================================================
 
   const closeMenus = () => {
+
     setMobileOpen(false);
+
     setProfileOpen(false);
+
   };
+
 
   // =====================================================
   // LOGOUT
   // =====================================================
 
   const handleLogout = () => {
-    // Remove authentication token
+
     localStorage.removeItem("token");
 
-    // Remove stored user information
     localStorage.removeItem("user");
+
     localStorage.removeItem("currentUser");
+
     localStorage.removeItem("userData");
 
     localStorage.removeItem("name");
+
     localStorage.removeItem("fullName");
+
     localStorage.removeItem("username");
+
     localStorage.removeItem("email");
 
+
     setProfileOpen(false);
+
     setMobileOpen(false);
 
+
     navigate("/citizen/login");
+
   };
 
+
   // =====================================================
-  // PROFILE INITIAL COMPONENT
+  // PROFILE IMAGE / INITIAL COMPONENT
   // =====================================================
 
-  const ProfileInitial = ({ size = "h-10 w-10" }) => {
+  const ProfileInitial = ({
+    size = "h-10 w-10",
+  }) => {
+
     return (
+
       <div
-        className={`${size} flex items-center justify-center rounded-full border-2 border-white/80 bg-white text-lg font-bold text-[#063b7a]`}
+        className={`${size} flex items-center justify-center overflow-hidden rounded-full border-2 border-white/80 bg-white text-lg font-bold text-[#063b7a]`}
       >
-        {userInitial}
+
+        {user.profileImage ? (
+
+          <img
+            src={getProfileImage()}
+            alt="Profile"
+            className="h-full w-full object-cover"
+          />
+
+        ) : (
+
+          userInitial
+
+        )}
+
       </div>
+
     );
+
   };
+
+
+  // =====================================================
+  // RETURN
+  // =====================================================
 
   return (
+
     <div className="px-6 pt-3 sm:px-8 lg:px-12">
 
       {/* =====================================================
@@ -161,15 +272,17 @@ const Navbar = () => {
 
       <nav className="mx-auto max-w-[1450px] overflow-visible rounded-[50px] bg-[#063b7a] text-white shadow-lg">
 
+
         {/* =====================================================
             MAIN NAVBAR
         ===================================================== */}
 
         <div className="flex h-20 items-center justify-between px-7 sm:px-10 lg:px-12">
 
+
           {/* =================================================
               LOGO
-          ================================================== */}
+          ================================================= */}
 
           <Link
             to="/citizen"
@@ -178,8 +291,11 @@ const Navbar = () => {
           >
 
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+
               <Building2 size={25} />
+
             </div>
+
 
             <div>
 
@@ -202,7 +318,8 @@ const Navbar = () => {
 
           <div className="hidden items-center gap-2 md:flex">
 
-            {/* ================= HOME ================= */}
+
+            {/* HOME */}
 
             <Link
               to="/citizen"
@@ -217,7 +334,7 @@ const Navbar = () => {
             </Link>
 
 
-            {/* ================= ABOUT ================= */}
+            {/* ABOUT */}
 
             <Link
               to="/citizen/about"
@@ -232,7 +349,7 @@ const Navbar = () => {
             </Link>
 
 
-            {/* ================= CONTACT ================= */}
+            {/* CONTACT */}
 
             <Link
               to="/contact"
@@ -255,7 +372,8 @@ const Navbar = () => {
 
           <div className="hidden items-center gap-4 md:flex">
 
-            {/* ================= NOTIFICATION ================= */}
+
+            {/* NOTIFICATION */}
 
             <button
               type="button"
@@ -272,60 +390,76 @@ const Navbar = () => {
             </button>
 
 
-            {/* ================= DIVIDER ================= */}
+            {/* DIVIDER */}
 
             <div className="h-8 w-px bg-white/15" />
 
 
-            {/* ================= PROFILE ================= */}
+            {/* PROFILE */}
 
             <div className="relative">
 
               <button
                 type="button"
-                onClick={() => setProfileOpen(!profileOpen)}
+                onClick={() =>
+                  setProfileOpen(!profileOpen)
+                }
                 className="flex items-center gap-3 rounded-2xl px-2.5 py-1.5 transition hover:bg-white/10"
               >
 
-                {/* USER FIRST LETTER */}
+                {/* PROFILE IMAGE OR INITIAL */}
 
                 <ProfileInitial />
 
-                <div className="hidden text-left lg:block">
-
-                  
-
-                 
-
-                </div>
 
                 <ChevronDown
                   size={17}
                   className={`transition-transform duration-200 ${
-                    profileOpen ? "rotate-180" : ""
+                    profileOpen
+                      ? "rotate-180"
+                      : ""
                   }`}
                 />
 
               </button>
 
 
-              {/* ================= DROPDOWN ================= */}
+              {/* =================================================
+                  DROPDOWN
+              ================================================== */}
 
               {profileOpen && (
 
                 <div className="absolute right-0 top-14 z-50 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white text-gray-700 shadow-2xl">
 
-                  {/* Profile Header */}
+
+                  {/* PROFILE HEADER */}
 
                   <div className="border-b border-slate-100 bg-slate-50 px-4 py-4">
 
                     <div className="flex items-center gap-3">
 
-                      {/* USER FIRST LETTER */}
 
-                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#063b7a] text-lg font-bold text-white">
-                        {userInitial}
+                      {/* IMAGE OR INITIAL */}
+
+                      <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[#063b7a] text-lg font-bold text-white">
+
+                        {user.profileImage ? (
+
+                          <img
+                            src={getProfileImage()}
+                            alt="Profile"
+                            className="h-full w-full object-cover"
+                          />
+
+                        ) : (
+
+                          userInitial
+
+                        )}
+
                       </div>
+
 
                       <div>
 
@@ -344,17 +478,21 @@ const Navbar = () => {
                   </div>
 
 
-                  {/* Options */}
+                  {/* OPTIONS */}
 
                   <div className="p-2">
 
-                    {/* ================= PROFILE ================= */}
+
+                    {/* PROFILE */}
 
                     <button
                       type="button"
                       onClick={() => {
+
                         setProfileOpen(false);
+
                         navigate("/citizen/profile");
+
                       }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
@@ -369,13 +507,16 @@ const Navbar = () => {
                     </button>
 
 
-                    {/* ================= DASHBOARD ================= */}
+                    {/* DASHBOARD */}
 
                     <button
                       type="button"
                       onClick={() => {
+
                         setProfileOpen(false);
+
                         navigate("/citizen/dashboard");
+
                       }}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-slate-100"
                     >
@@ -392,7 +533,7 @@ const Navbar = () => {
                   </div>
 
 
-                  {/* ================= LOGOUT ================= */}
+                  {/* LOGOUT */}
 
                   <div className="border-t border-slate-100 p-2">
 
@@ -425,7 +566,9 @@ const Navbar = () => {
 
           <button
             type="button"
-            onClick={() => setMobileOpen(!mobileOpen)}
+            onClick={() =>
+              setMobileOpen(!mobileOpen)
+            }
             className="flex h-11 w-11 items-center justify-center rounded-xl transition hover:bg-white/10 md:hidden"
           >
 
@@ -450,13 +593,32 @@ const Navbar = () => {
 
             <div className="flex flex-col gap-2">
 
-              {/* ================= USER INFO ================= */}
+
+              {/* USER INFO */}
 
               <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/10 px-4 py-3">
 
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-lg font-bold text-[#063b7a]">
-                  {userInitial}
+
+                {/* IMAGE OR INITIAL */}
+
+                <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white text-lg font-bold text-[#063b7a]">
+
+                  {user.profileImage ? (
+
+                    <img
+                      src={getProfileImage()}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+
+                  ) : (
+
+                    userInitial
+
+                  )}
+
                 </div>
+
 
                 <div>
 
@@ -473,7 +635,7 @@ const Navbar = () => {
               </div>
 
 
-              {/* ================= HOME ================= */}
+              {/* HOME */}
 
               <Link
                 to="/citizen"
@@ -488,7 +650,7 @@ const Navbar = () => {
               </Link>
 
 
-              {/* ================= ABOUT ================= */}
+              {/* ABOUT */}
 
               <Link
                 to="/citizen/about"
@@ -503,7 +665,7 @@ const Navbar = () => {
               </Link>
 
 
-              {/* ================= CONTACT ================= */}
+              {/* CONTACT */}
 
               <Link
                 to="/contact"
@@ -518,12 +680,12 @@ const Navbar = () => {
               </Link>
 
 
-              {/* ================= DIVIDER ================= */}
+              {/* DIVIDER */}
 
               <div className="my-2 h-px bg-white/10" />
 
 
-              {/* ================= NOTIFICATIONS ================= */}
+              {/* NOTIFICATIONS */}
 
               <button
                 type="button"
@@ -541,13 +703,16 @@ const Navbar = () => {
               </button>
 
 
-              {/* ================= PROFILE ================= */}
+              {/* PROFILE */}
 
               <button
                 type="button"
                 onClick={() => {
+
                   setMobileOpen(false);
+
                   navigate("/citizen/profile");
+
                 }}
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
               >
@@ -559,13 +724,16 @@ const Navbar = () => {
               </button>
 
 
-              {/* ================= DASHBOARD ================= */}
+              {/* DASHBOARD */}
 
               <button
                 type="button"
                 onClick={() => {
+
                   setMobileOpen(false);
+
                   navigate("/citizen/dashboard");
+
                 }}
                 className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-blue-100 hover:bg-white/10"
               >
@@ -577,7 +745,7 @@ const Navbar = () => {
               </button>
 
 
-              {/* ================= LOGOUT ================= */}
+              {/* LOGOUT */}
 
               <button
                 type="button"
@@ -600,7 +768,9 @@ const Navbar = () => {
       </nav>
 
     </div>
+
   );
+
 };
 
 export default Navbar;

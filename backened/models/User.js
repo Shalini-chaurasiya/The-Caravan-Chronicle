@@ -28,6 +28,40 @@ const userSchema = new mongoose.Schema(
             default: "citizen"
         },
 
+        // ==========================================
+        // PROFILE INFORMATION
+        // ==========================================
+
+        address: {
+            type: String,
+            default: ""
+        },
+
+        gender: {
+            type: String,
+            enum: ["Female", "Male", "Other", ""],
+            default: ""
+        },
+
+        contact: {
+            type: String,
+            default: ""
+        },
+
+        dob: {
+            type: Date,
+            default: null
+        },
+
+        profileImage: {
+            type: String,
+            default: ""
+        },
+
+        // ==========================================
+        // PASSWORD RESET
+        // ==========================================
+
         resetPasswordToken: {
             type: String,
             default: null
@@ -38,10 +72,12 @@ const userSchema = new mongoose.Schema(
             default: null
         }
     },
+
     {
         timestamps: true
     }
 );
+
 
 const User = mongoose.model("User", userSchema);
 
