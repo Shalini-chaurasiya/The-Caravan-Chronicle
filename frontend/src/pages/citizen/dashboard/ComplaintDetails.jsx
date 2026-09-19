@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -18,39 +18,76 @@ const ComplaintDetails = () => {
   const navigate = useNavigate();
   const { complaintId } = useParams();
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
+  const [complaint, setComplaint] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   // =====================================================
-  // TEMPORARY COMPLAINT DATA
+  // FETCH COMPLAINT FROM BACKEND
   // =====================================================
-  // Later this data can come from your backend API.
 
-  const complaint = {
-    id: complaintId || "CMP-2026-00124",
+  useEffect(() => {
+    const fetchComplaintDetails = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-    name: "Citizen",
+        const token = localStorage.getItem("token");
 
-    email: "citizen@example.com",
+        if (!token) {
+          throw new Error("Please login again.");
+        }
 
-    phone: "+91 98765 43210",
+        if (!complaintId) {
+          throw new Error("Complaint ID is missing.");
+        }
 
-    title: "Garbage not collected",
+        console.log("Fetching complaint:", complaintId);
 
-    category: "Garbage",
+        const response = await fetch(
+          `${API_URL}/api/complaints/${complaintId}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-    description:
-      "Garbage has not been collected from our locality for several days. The garbage bins are completely full and waste is spreading around the area. Kindly arrange garbage collection as soon as possible.",
+        const data = await response.json();
 
-    location: "Civil Lines, Prayagraj",
+        console.log("Complaint Details Response:", data);
 
-    address:
-      "Near Civil Lines Park, Civil Lines, Prayagraj, Uttar Pradesh",
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
 
-    date: "02 September 2026",
+            throw new Error("Session expired. Please login again.");
+          }
 
-    time: "10:30 AM",
+          throw new Error(
+            data.message || "Failed to fetch complaint details."
+          );
+        }
 
-    image:
-      "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=900&q=80",
-  };
+        if (!data.success || !data.complaint) {
+          throw new Error("Complaint details not found.");
+        }
+
+        setComplaint(data.complaint);
+      } catch (err) {
+        console.error("Complaint Details Error:", err);
+        setError(err.message || "Something went wrong.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchComplaintDetails();
+  }, [complaintId, API_URL]);
 
   // =====================================================
   // BACK BUTTON
@@ -59,6 +96,105 @@ const ComplaintDetails = () => {
   const handleBack = () => {
     navigate("/citizen/dashboard/complaints");
   };
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600"></div>
+
+          <p className="mt-4 text-sm font-medium text-slate-600">
+            Loading complaint details...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================================
+  // ERROR
+  // =====================================================
+
+  if (error || !complaint) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+        <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+            <FileText size={22} className="text-red-500" />
+          </div>
+
+          <h2 className="mt-4 text-lg font-bold text-slate-900">
+            Unable to Load Complaint
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            {error || "Complaint details could not be found."}
+          </p>
+
+          <button
+            type="button"
+            onClick={handleBack}
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            <ArrowLeft size={17} />
+            Back to My Complaints
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =====================================================
+  // USER DATA FROM POPULATED BACKEND
+  // =====================================================
+
+  const user = complaint.user || {};
+
+  // =====================================================
+  // DATE / TIME
+  // =====================================================
+
+  const submittedDate = complaint.createdAt
+    ? new Date(complaint.createdAt)
+    : null;
+
+  const formattedDate = submittedDate
+    ? submittedDate.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      })
+    : "N/A";
+
+  const formattedTime = submittedDate
+    ? submittedDate.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })
+    : "N/A";
+
+  // =====================================================
+  // IMAGE URL
+  // =====================================================
+
+  let imageUrl = null;
+
+  if (complaint.photo?.url) {
+    if (complaint.photo.url.startsWith("http")) {
+      imageUrl = complaint.photo.url;
+    } else {
+      imageUrl = `${API_URL}${complaint.photo.url}`;
+    }
+  }
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -70,7 +206,6 @@ const ComplaintDetails = () => {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-5 py-5 sm:px-6 lg:px-8">
 
-          {/* BACK */}
           <button
             type="button"
             onClick={handleBack}
@@ -80,7 +215,6 @@ const ComplaintDetails = () => {
             Back to My Complaints
           </button>
 
-          {/* HEADER CONTENT */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 
             <div className="min-w-0">
@@ -90,7 +224,7 @@ const ComplaintDetails = () => {
               </p>
 
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {complaint.title}
+                {complaint.complaintType}
               </h1>
 
               <p className="mt-2 text-sm text-slate-500">
@@ -107,8 +241,8 @@ const ComplaintDetails = () => {
                 Complaint ID
               </p>
 
-              <p className="mt-1 text-sm font-bold text-blue-700">
-                {complaint.id}
+              <p className="mt-1 max-w-[220px] truncate text-sm font-bold text-blue-700">
+                {complaint._id}
               </p>
 
             </div>
@@ -125,9 +259,9 @@ const ComplaintDetails = () => {
 
         <div className="grid gap-6 lg:grid-cols-3">
 
-          {/* =====================================================
+          {/* =================================================
               LEFT COLUMN
-          ===================================================== */}
+          ================================================= */}
 
           <div className="space-y-6 lg:col-span-2">
 
@@ -136,8 +270,6 @@ const ComplaintDetails = () => {
             ================================================= */}
 
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-
-              {/* SECTION HEADER */}
 
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
 
@@ -160,33 +292,27 @@ const ComplaintDetails = () => {
 
               </div>
 
-              {/* CONTENT */}
-
               <div className="p-5 sm:p-6">
-
-                {/* TITLE + CATEGORY */}
 
                 <div className="grid gap-5 sm:grid-cols-2">
 
-                  {/* TITLE */}
+                  {/* COMPLAINT TYPE */}
 
                   <div>
 
                     <div className="mb-2 flex items-center gap-2">
-
                       <FileText
                         size={15}
                         className="text-slate-400"
                       />
 
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Complaint Title
+                        Complaint Type
                       </p>
-
                     </div>
 
                     <p className="text-sm font-semibold text-slate-900">
-                      {complaint.title}
+                      {complaint.complaintType || "N/A"}
                     </p>
 
                   </div>
@@ -196,20 +322,18 @@ const ComplaintDetails = () => {
                   <div>
 
                     <div className="mb-2 flex items-center gap-2">
-
                       <Tag
                         size={15}
                         className="text-slate-400"
                       />
 
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        Category
+                        Status
                       </p>
-
                     </div>
 
                     <span className="inline-flex rounded-md bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                      {complaint.category}
+                      {complaint.status || "Pending"}
                     </span>
 
                   </div>
@@ -234,13 +358,12 @@ const ComplaintDetails = () => {
                   </div>
 
                   <p className="text-sm leading-7 text-slate-700">
-                    {complaint.description}
+                    {complaint.description || "No description provided."}
                   </p>
 
                 </div>
 
               </div>
-
             </section>
 
             {/* =================================================
@@ -248,8 +371,6 @@ const ComplaintDetails = () => {
             ================================================= */}
 
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-
-              {/* HEADER */}
 
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
 
@@ -276,8 +397,6 @@ const ComplaintDetails = () => {
 
               </div>
 
-              {/* CONTENT */}
-
               <div className="p-5 sm:p-6">
 
                 <div className="flex items-start gap-3">
@@ -289,20 +408,23 @@ const ComplaintDetails = () => {
 
                   <div className="min-w-0">
 
-                    <p className="text-sm font-semibold text-slate-900">
-                      {complaint.location}
+                    <p className="break-words text-sm font-semibold text-slate-900">
+                      {complaint.location || "Location not provided"}
                     </p>
 
-                    <p className="mt-1 text-sm leading-6 text-slate-600">
-                      {complaint.address}
-                    </p>
+                    {complaint.latitude !== null &&
+                      complaint.longitude !== null && (
+                        <p className="mt-2 text-xs text-slate-400">
+                          Coordinates: {complaint.latitude},{" "}
+                          {complaint.longitude}
+                        </p>
+                      )}
 
                   </div>
 
                 </div>
 
               </div>
-
             </section>
 
             {/* =================================================
@@ -310,8 +432,6 @@ const ComplaintDetails = () => {
             ================================================= */}
 
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-
-              {/* HEADER */}
 
               <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
 
@@ -338,17 +458,18 @@ const ComplaintDetails = () => {
 
               </div>
 
-              {/* IMAGE */}
-
               <div className="p-5 sm:p-6">
 
-                {complaint.image ? (
+                {imageUrl ? (
                   <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
 
                     <img
-                      src={complaint.image}
+                      src={imageUrl}
                       alt="Complaint evidence"
                       className="max-h-[420px] w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                     />
 
                   </div>
@@ -372,7 +493,6 @@ const ComplaintDetails = () => {
                 )}
 
               </div>
-
             </section>
 
           </div>
@@ -389,8 +509,6 @@ const ComplaintDetails = () => {
 
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
 
-              {/* HEADER */}
-
               <div className="border-b border-slate-100 px-5 py-4">
 
                 <h2 className="text-sm font-bold text-slate-900">
@@ -398,8 +516,6 @@ const ComplaintDetails = () => {
                 </h2>
 
               </div>
-
-              {/* USER DETAILS */}
 
               <div className="divide-y divide-slate-100">
 
@@ -422,8 +538,8 @@ const ComplaintDetails = () => {
                       Name
                     </p>
 
-                    <p className="mt-1 text-sm font-semibold text-slate-800">
-                      {complaint.name}
+                    <p className="mt-1 break-words text-sm font-semibold text-slate-800">
+                      {user.name || "N/A"}
                     </p>
 
                   </div>
@@ -450,7 +566,7 @@ const ComplaintDetails = () => {
                     </p>
 
                     <p className="mt-1 break-all text-sm font-medium text-slate-700">
-                      {complaint.email}
+                      {user.email || "N/A"}
                     </p>
 
                   </div>
@@ -470,14 +586,41 @@ const ComplaintDetails = () => {
 
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
 
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                       Phone
                     </p>
 
-                    <p className="mt-1 text-sm font-medium text-slate-700">
-                      {complaint.phone}
+                    <p className="mt-1 break-words text-sm font-medium text-slate-700">
+                      {user.contact || "Not provided"}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                {/* ADDRESS */}
+
+                <div className="flex items-start gap-3 px-5 py-4">
+
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+
+                    <MapPin
+                      size={17}
+                      className="text-slate-600"
+                    />
+
+                  </div>
+
+                  <div className="min-w-0">
+
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      Address
+                    </p>
+
+                    <p className="mt-1 break-words text-sm font-medium leading-6 text-slate-700">
+                      {user.address || "Not provided"}
                     </p>
 
                   </div>
@@ -485,7 +628,6 @@ const ComplaintDetails = () => {
                 </div>
 
               </div>
-
             </section>
 
             {/* =================================================
@@ -494,8 +636,6 @@ const ComplaintDetails = () => {
 
             <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
 
-              {/* HEADER */}
-
               <div className="border-b border-slate-100 px-5 py-4">
 
                 <h2 className="text-sm font-bold text-slate-900">
@@ -503,8 +643,6 @@ const ComplaintDetails = () => {
                 </h2>
 
               </div>
-
-              {/* DETAILS */}
 
               <div className="divide-y divide-slate-100">
 
@@ -528,7 +666,7 @@ const ComplaintDetails = () => {
                     </p>
 
                     <p className="mt-1 text-sm font-semibold text-slate-800">
-                      {complaint.date}
+                      {formattedDate}
                     </p>
 
                   </div>
@@ -555,7 +693,7 @@ const ComplaintDetails = () => {
                     </p>
 
                     <p className="mt-1 text-sm font-semibold text-slate-800">
-                      {complaint.time}
+                      {formattedTime}
                     </p>
 
                   </div>
@@ -563,7 +701,6 @@ const ComplaintDetails = () => {
                 </div>
 
               </div>
-
             </section>
 
             {/* =================================================
@@ -580,11 +717,8 @@ const ComplaintDetails = () => {
             </button>
 
           </aside>
-
         </div>
-
       </main>
-
     </div>
   );
 };
