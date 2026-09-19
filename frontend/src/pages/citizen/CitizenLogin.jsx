@@ -16,7 +16,6 @@ const CitizenLogin = () => {
   // MODE
   // =====================================================
 
-  // If token exists in URL, show reset password form
   const [mode, setMode] = useState(token ? "reset" : "login");
 
   // =====================================================
@@ -52,7 +51,7 @@ const CitizenLogin = () => {
   const [success, setSuccess] = useState("");
 
   // =====================================================
-  // LOGIN
+  // LOGIN CHANGE
   // =====================================================
 
   const handleLoginChange = (e) => {
@@ -62,6 +61,10 @@ const CitizenLogin = () => {
     });
   };
 
+  // =====================================================
+  // LOGIN
+  // =====================================================
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
 
@@ -70,12 +73,14 @@ const CitizenLogin = () => {
     setLoading(true);
 
     try {
-      // Debug information
+      console.log("=================================");
+      console.log("CITIZEN LOGIN");
       console.log("API URL:", API_URL);
       console.log(
         "Login endpoint:",
         `${API_URL}/api/auth/login`
       );
+      console.log("=================================");
 
       const response = await fetch(
         `${API_URL}/api/auth/login`,
@@ -84,11 +89,17 @@ const CitizenLogin = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(loginData),
+          body: JSON.stringify({
+            email: loginData.email.trim(),
+            password: loginData.password,
+          }),
         }
       );
 
-      // Safely read response
+      // =====================================================
+      // READ RESPONSE
+      // =====================================================
+
       const contentType =
         response.headers.get("content-type") || "";
 
@@ -111,7 +122,12 @@ const CitizenLogin = () => {
         };
       }
 
-      // Handle HTTP errors
+      console.log("LOGIN RESPONSE:", data);
+
+      // =====================================================
+      // HANDLE LOGIN ERROR
+      // =====================================================
+
       if (!response.ok) {
         throw new Error(
           data.message ||
@@ -119,15 +135,30 @@ const CitizenLogin = () => {
         );
       }
 
-      // Make sure token exists
+      // =====================================================
+      // CHECK TOKEN
+      // =====================================================
+
       if (!data.token) {
+        console.error(
+          "LOGIN SUCCESS BUT TOKEN IS MISSING:",
+          data
+        );
+
         throw new Error(
           "Login succeeded but no authentication token was received."
         );
       }
 
       // =====================================================
-      // SAVE LOGIN INFORMATION
+      // CLEAR OLD AUTH DATA
+      // =====================================================
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // =====================================================
+      // SAVE NEW TOKEN
       // =====================================================
 
       localStorage.setItem("token", data.token);
@@ -139,7 +170,25 @@ const CitizenLogin = () => {
         );
       }
 
-      console.log("Login successful:", data);
+      // =====================================================
+      // VERIFY TOKEN WAS SAVED
+      // =====================================================
+
+      const savedToken = localStorage.getItem("token");
+
+      console.log("=================================");
+      console.log("LOGIN SUCCESS");
+      console.log("Token received:", !!data.token);
+      console.log("Token saved:", !!savedToken);
+      console.log("Token:", savedToken);
+      console.log("User:", data.user);
+      console.log("=================================");
+
+      if (!savedToken) {
+        throw new Error(
+          "Login successful, but token could not be saved."
+        );
+      }
 
       // =====================================================
       // REDIRECT
@@ -183,12 +232,11 @@ const CitizenLogin = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email: forgotEmail,
+            email: forgotEmail.trim(),
           }),
         }
       );
 
-      // Safely parse response
       const contentType =
         response.headers.get("content-type") || "";
 
@@ -235,7 +283,7 @@ const CitizenLogin = () => {
   };
 
   // =====================================================
-  // RESET PASSWORD
+  // RESET PASSWORD CHANGE
   // =====================================================
 
   const handleResetChange = (e) => {
@@ -245,6 +293,10 @@ const CitizenLogin = () => {
     });
   };
 
+  // =====================================================
+  // RESET PASSWORD
+  // =====================================================
+
   const handleResetSubmit = async (e) => {
     e.preventDefault();
 
@@ -252,7 +304,7 @@ const CitizenLogin = () => {
     setSuccess("");
 
     // =====================================================
-    // VALIDATE PASSWORD
+    // VALIDATION
     // =====================================================
 
     if (
@@ -298,7 +350,6 @@ const CitizenLogin = () => {
         }
       );
 
-      // Safely parse response
       const contentType =
         response.headers.get("content-type") || "";
 
@@ -332,10 +383,6 @@ const CitizenLogin = () => {
         password: "",
         confirmPassword: "",
       });
-
-      // =====================================================
-      // REDIRECT TO LOGIN
-      // =====================================================
 
       setTimeout(() => {
         navigate("/citizen/login");
@@ -649,8 +696,7 @@ const CitizenLogin = () => {
         )}
 
         {/* Current Page */}
-        {mode === "login" &&
-          renderLogin()}
+        {mode === "login" && renderLogin()}
 
         {mode === "forgot" &&
           renderForgotPassword()}
