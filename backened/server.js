@@ -28,25 +28,13 @@ const app = express();
 
 app.use(
   cors({
-
     origin: [
       "http://localhost:5173",
       "http://localhost:5174"
     ],
 
     credentials: true
-
   })
-);
-
-
-// ==========================================
-// SERVE UPLOADED FILES
-// ==========================================
-
-app.use(
-  "/uploads",
-  express.static("uploads")
 );
 
 
@@ -60,6 +48,16 @@ app.use(
   express.urlencoded({
     extended: true
   })
+);
+
+
+// ==========================================
+// SERVE UPLOADED FILES
+// ==========================================
+
+app.use(
+  "/uploads",
+  express.static("uploads")
 );
 
 
@@ -85,32 +83,35 @@ app.get("/", (req, res) => {
 // API ROUTES
 // ==========================================
 
+// AUTH
 app.use(
   "/api/auth",
   authRoutes
 );
 
 
+// CONTACT
 app.use(
   "/api/contact",
   contactRoutes
 );
 
 
+// DASHBOARD
 app.use(
   "/api/dashboard",
   dashboardRoutes
 );
 
 
+// COMPLAINTS
 app.use(
   "/api/complaints",
   complaintRoutes
 );
 
 
-// PROFILE API
-
+// PROFILE
 app.use(
   "/api/profile",
   profileRoutes
