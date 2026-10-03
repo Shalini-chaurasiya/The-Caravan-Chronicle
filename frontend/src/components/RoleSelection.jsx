@@ -24,34 +24,49 @@ const RoleSelection = () => {
     },
   ];
 
+  // ---------------- LOGIN ----------------
   const handleLogin = () => {
     if (!selectedRole) {
       alert("Please select your role first.");
       return;
     }
 
-    // Citizen login page
+    // Citizen Login
     if (selectedRole === "citizen") {
       navigate("/citizen/login");
       return;
     }
 
-    alert(`${selectedRole} login page is coming soon.`);
+    // Owner/Admin Login
+    if (selectedRole === "owner") {
+      window.location.href = "http://localhost:5174/admin/login";
+      return;
+    }
+
+    // Staff Login
+    if (selectedRole === "staff") {
+      alert("Staff login page is coming soon.");
+      return;
+    }
   };
 
+  // ---------------- REGISTER ----------------
   const handleRegister = () => {
     if (!selectedRole) {
       alert("Please select your role first.");
       return;
     }
 
-    // Citizen register page
+    // Only Citizen can register
     if (selectedRole === "citizen") {
       navigate("/citizen/register");
       return;
     }
 
-    alert(`${selectedRole} registration page is coming soon.`);
+    // Staff / Owner cannot register
+    if (selectedRole === "staff" || selectedRole === "owner") {
+      return;
+    }
   };
 
   return (
@@ -99,7 +114,7 @@ const RoleSelection = () => {
                 className="w-4 h-4 accent-blue-600 shrink-0"
               />
 
-              {/* Role Text */}
+              {/* Role Information */}
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
                   {role.title}
@@ -114,23 +129,60 @@ const RoleSelection = () => {
         })}
       </div>
 
-      {/* Login and Register Buttons */}
-      <div className="grid grid-cols-2 gap-3 mt-5">
-
+      {/* Buttons */}
+      <div
+        className="
+          grid
+          grid-cols-2
+          gap-3
+          mt-5
+        "
+      >
+        {/* Login Button */}
         <button
           onClick={handleLogin}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2.5 rounded-lg font-semibold transition"
+          className="
+            w-full
+            bg-blue-600
+            hover:bg-blue-700
+            text-white
+            text-sm
+            py-2.5
+            rounded-lg
+            font-semibold
+            transition
+          "
         >
           Login
         </button>
 
-        <button
-          onClick={handleRegister}
-          className="border border-blue-600 text-blue-600 hover:bg-blue-50 text-sm py-2.5 rounded-lg font-semibold transition"
-        >
-          Register
-        </button>
+        {/* Register Button */}
+        {(!selectedRole || selectedRole === "citizen") && (
+          <button
+            onClick={handleRegister}
+            className="
+              w-full
+              border
+              border-blue-600
+              text-blue-600
+              hover:bg-blue-50
+              text-sm
+              py-2.5
+              rounded-lg
+              font-semibold
+              transition
+            "
+          >
+            Register
+          </button>
+        )}
 
+        {/* Invisible placeholder to keep Login centered/consistent
+            when Staff or Owner is selected */}
+        {selectedRole &&
+          selectedRole !== "citizen" && (
+            <div></div>
+          )}
       </div>
 
       {/* Bottom Message */}
