@@ -11,13 +11,22 @@ import contactRoutes from "./routes/contactRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import complaintRoutes from "./routes/complaintRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
+
+// ==========================================
+// DNS
+// ==========================================
 
 dns.setServers([
   "8.8.8.8",
   "8.8.4.4"
 ]);
 
+
+// ==========================================
+// EXPRESS APP
+// ==========================================
 
 const app = express();
 
@@ -32,7 +41,6 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174"
     ],
-
     credentials: true
   })
 );
@@ -68,12 +76,8 @@ app.use(
 app.get("/", (req, res) => {
 
   res.status(200).json({
-
     success: true,
-
-    message:
-      "Caravan Chronicle Backend is running"
-
+    message: "Caravan Chronicle Backend is running"
   });
 
 });
@@ -83,38 +87,64 @@ app.get("/", (req, res) => {
 // API ROUTES
 // ==========================================
 
+
+// ------------------------------------------
 // AUTH
+// ------------------------------------------
+
 app.use(
   "/api/auth",
   authRoutes
 );
 
 
+// ------------------------------------------
 // CONTACT
+// ------------------------------------------
+
 app.use(
   "/api/contact",
   contactRoutes
 );
 
 
+// ------------------------------------------
 // DASHBOARD
+// ------------------------------------------
+
 app.use(
   "/api/dashboard",
   dashboardRoutes
 );
 
 
+// ------------------------------------------
 // COMPLAINTS
+// ------------------------------------------
+
 app.use(
   "/api/complaints",
   complaintRoutes
 );
 
 
+// ------------------------------------------
 // PROFILE
+// ------------------------------------------
+
 app.use(
   "/api/profile",
   profileRoutes
+);
+
+
+// ------------------------------------------
+// ADMIN
+// ------------------------------------------
+
+app.use(
+  "/api/admin",
+  adminRoutes
 );
 
 
@@ -248,6 +278,11 @@ const startServer = async () => {
 
         console.log(
           `Profile API:    http://localhost:${PORT}/api/profile`
+        );
+
+
+        console.log(
+          `Admin API:      http://localhost:${PORT}/api/admin`
         );
 
 
