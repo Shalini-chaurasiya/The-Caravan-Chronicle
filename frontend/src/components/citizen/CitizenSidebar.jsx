@@ -6,6 +6,7 @@ import {
   Bell,
   Search,
   LogOut,
+  Building2,
 } from "lucide-react";
 
 const CitizenSidebar = () => {
@@ -47,24 +48,38 @@ const CitizenSidebar = () => {
   ];
 
   return (
-    <aside className="flex min-h-screen w-64 flex-col border-r border-slate-200 bg-white shadow-sm">
+    <aside className="flex min-h-screen w-64 flex-col bg-[#10233f] text-white shadow-lg">
 
-      {/* LOGO / TITLE */}
-      <div className="border-b border-slate-200 px-6 py-5">
-        <h1 className="text-xl font-bold text-blue-700">
-          Citizen Portal
-        </h1>
+      {/* =========================
+          LOGO / BRAND
+      ========================== */}
+      <div className="flex h-[82px] items-center gap-3 border-b border-white/10 px-5">
 
-        <p className="mt-1 text-xs text-slate-500">
-          Municipal Services
-        </p>
+        {/* Logo */}
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1d72e8]">
+          <Building2 size={21} />
+        </div>
+
+        {/* Title */}
+        <div>
+          <h1 className="text-[15px] font-bold tracking-wide">
+            Municipal
+          </h1>
+
+          <p className="mt-0.5 text-[10px] text-slate-400">
+            Grievance System
+          </p>
+        </div>
+
       </div>
 
-      {/* MENU */}
-      <nav className="flex-1 px-4 py-6">
+      {/* =========================
+          MENU
+      ========================== */}
+      <nav className="flex-1 px-3 py-6">
 
-        <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Menu
+        <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[1px] text-slate-500">
+          Main Menu
         </p>
 
         <div className="space-y-1">
@@ -78,16 +93,23 @@ const CitizenSidebar = () => {
                 to={item.path}
                 end={item.path === "/citizen/dashboard"}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
+                  `group flex h-[46px] items-center gap-3 rounded-lg px-3 text-[13px] font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-blue-700"
+                      ? "bg-[#1d72e8] text-white shadow-md shadow-blue-900/20"
+                      : "text-slate-300 hover:bg-white/[0.07] hover:text-white"
                   }`
                 }
               >
-                <Icon size={19} />
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      size={18}
+                      strokeWidth={isActive ? 2.4 : 2}
+                    />
 
-                <span>{item.name}</span>
+                    <span>{item.name}</span>
+                  </>
+                )}
               </NavLink>
             );
           })}
@@ -95,15 +117,22 @@ const CitizenSidebar = () => {
         </div>
       </nav>
 
-      {/* LOGOUT */}
-      <div className="border-t border-slate-200 p-4">
+      {/* =========================
+          USER INFO
+      ========================== */}
+     
+
+      {/* =========================
+          LOGOUT
+      ========================== */}
+      <div className="border-t border-white/10 p-3">
 
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50"
+          className="flex h-[46px] w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-slate-300 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
         >
-          <LogOut size={19} />
+          <LogOut size={18} />
 
           <span>Logout</span>
         </button>
