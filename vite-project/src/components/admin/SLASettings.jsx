@@ -1,8 +1,10 @@
+import AdminPageLayout from "./AdminPageLayout";
+
 export default function SLASettings() {
-	return (
-		<main>
-			<h1>SLA Settings</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
+  return (
+    <AdminPageLayout
+      title="SLA Settings"
+      description="Set response targets and escalation rules for municipal complaints."
+    />
+  );
 }

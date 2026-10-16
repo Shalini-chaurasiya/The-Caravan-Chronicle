@@ -1,8 +1,10 @@
+import AdminPageLayout from "./AdminPageLayout";
+
 export default function StaffManagement() {
-	return (
-		<main>
-			<h1>Staff Management</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
+  return (
+    <AdminPageLayout
+      title="Staff Management"
+      description="Manage staff accounts, roles, and complaint assignments."
+    />
+  );
 }

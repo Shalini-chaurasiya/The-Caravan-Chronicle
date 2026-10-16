@@ -2,12 +2,6 @@
 
 /* src/index.css */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 body {
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
   background: #f5f7fb;
@@ -25,6 +19,15 @@ button {
 
 a {
   text-decoration: none;
+}
+
+.sidebar-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 

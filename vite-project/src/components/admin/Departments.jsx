@@ -1,8 +1,10 @@
-export default function Departments() {
-	return (
-		<main>
-			<h1>Departments</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
-}
+import AdminPageLayout from "./AdminPageLayout";
+
+const Departments = () => (
+  <AdminPageLayout
+    title="Departments"
+    description="Organize departments and the municipal services they handle."
+  />
+);
+
+export default Departments;

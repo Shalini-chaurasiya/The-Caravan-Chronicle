@@ -1,8 +1,10 @@
+import AdminPageLayout from "./AdminPageLayout";
+
 export default function ActivityLog() {
-	return (
-		<main>
-			<h1>Activity Log</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
+  return (
+    <AdminPageLayout
+      title="Activity Log"
+      description="Review administrative actions across the municipal services portal."
+    />
+  );
 }

@@ -1,5 +1,3 @@
-// src/components/admin/ComplaintTable.jsx
-
 const complaints = [
   {
     id: "CMP101",
@@ -39,72 +37,107 @@ const complaints = [
   },
 ];
 
+const statusStyles = {
+  "IN PROGRESS": "bg-blue-50 text-blue-600",
+  ASSIGNED: "bg-amber-50 text-amber-600",
+  RESOLVED: "bg-green-50 text-green-600",
+  OPEN: "bg-red-50 text-red-600",
+};
+
+const priorityStyles = {
+  High: "bg-red-50 text-red-600",
+  Medium: "bg-amber-50 text-amber-600",
+  Low: "bg-green-50 text-green-600",
+};
+
 const ComplaintTable = () => {
   return (
-    <div className="dashboard-section">
-      <div className="section-header">
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+      <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h2>Recent Complaints</h2>
-          <p>Latest complaints submitted by citizens</p>
+          <h2 className="text-base font-semibold text-[#172033]">
+            Recent Complaints
+          </h2>
+          <p className="mt-1 text-xs text-slate-400">
+            Latest complaints submitted by citizens
+          </p>
         </div>
 
-        <button className="view-all-btn">
+        <button
+          type="button"
+          className="shrink-0 text-xs font-semibold text-blue-600 hover:text-blue-700"
+        >
           View All →
         </button>
       </div>
 
-      <div className="table-container">
-        <table className="complaint-table">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] border-collapse text-left">
           <thead>
-            <tr>
-              <th>ID</th>
-              <th>Complaint Type</th>
-              <th>Location</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Assigned To</th>
-              <th>Date</th>
+            <tr className="bg-slate-50">
+              {[
+                "ID",
+                "Complaint Type",
+                "Location",
+                "Status",
+                "Priority",
+                "Assigned To",
+                "Date",
+              ].map((heading) => (
+                <th
+                  key={heading}
+                  className="border-b border-slate-200 px-3 py-3 text-[11px] font-semibold text-slate-500"
+                >
+                  {heading}
+                </th>
+              ))}
             </tr>
           </thead>
 
           <tbody>
             {complaints.map((complaint) => (
-              <tr key={complaint.id}>
-                <td>
-                  <strong>{complaint.id}</strong>
+              <tr key={complaint.id} className="hover:bg-slate-50">
+                <td className="border-b border-slate-100 px-3 py-4 text-xs font-semibold text-blue-600">
+                  {complaint.id}
                 </td>
 
-                <td>{complaint.type}</td>
+                <td className="border-b border-slate-100 px-3 py-4 text-xs text-slate-600">
+                  {complaint.type}
+                </td>
 
-                <td>{complaint.location}</td>
+                <td className="border-b border-slate-100 px-3 py-4 text-xs text-slate-600">
+                  {complaint.location}
+                </td>
 
-                <td>
+                <td className="border-b border-slate-100 px-3 py-4">
                   <span
-                    className={`status-badge ${complaint.status
-                      .toLowerCase()
-                      .replace(" ", "-")}`}
+                    className={`inline-block rounded-full px-2 py-1 text-[9px] font-bold ${statusStyles[complaint.status]}`}
                   >
                     {complaint.status}
                   </span>
                 </td>
 
-                <td>
+                <td className="border-b border-slate-100 px-3 py-4">
                   <span
-                    className={`priority-badge ${complaint.priority.toLowerCase()}`}
+                    className={`inline-block rounded-full px-2 py-1 text-[9px] font-bold ${priorityStyles[complaint.priority]}`}
                   >
                     {complaint.priority}
                   </span>
                 </td>
 
-                <td>{complaint.staff}</td>
+                <td className="border-b border-slate-100 px-3 py-4 text-xs text-slate-600">
+                  {complaint.staff}
+                </td>
 
-                <td>{complaint.date}</td>
+                <td className="border-b border-slate-100 px-3 py-4 text-xs text-slate-600">
+                  {complaint.date}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 };
 

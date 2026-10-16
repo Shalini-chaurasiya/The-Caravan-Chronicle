@@ -1,8 +1,10 @@
+import AdminPageLayout from "./AdminPageLayout";
+
 export default function ComplaintDetails() {
-	return (
-		<main>
-			<h1>Complaint Details</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
+  return (
+    <AdminPageLayout
+      title="Complaint Details"
+      description="Review the report, status history, and actions for a complaint."
+    />
+  );
 }

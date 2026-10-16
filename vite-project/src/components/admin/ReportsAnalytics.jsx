@@ -1,8 +1,10 @@
+import AdminPageLayout from "./AdminPageLayout";
+
 export default function ReportsAnalytics() {
-	return (
-		<main>
-			<h1>Reports and Analytics</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
+  return (
+    <AdminPageLayout
+      title="Reports and Analytics"
+      description="Monitor complaint volumes, resolution trends, and service performance."
+    />
+  );
 }

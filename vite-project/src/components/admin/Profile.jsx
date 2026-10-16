@@ -1,8 +1,10 @@
+import AdminPageLayout from "./AdminPageLayout";
+
 export default function Profile() {
-	return (
-		<main>
-			<h1>Admin Profile</h1>
-			<p>This page is under construction.</p>
-		</main>
-	);
+  return (
+    <AdminPageLayout
+      title="Admin Profile"
+      description="Manage your administrator account details and preferences."
+    />
+  );
 }
