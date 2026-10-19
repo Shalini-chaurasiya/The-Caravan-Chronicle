@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+
+import { NavLink, useNavigate } from "react-router-dom";
 
 const menuItems = [
   { name: "Dashboard", path: "/admin/dashboard", icon: "⌂" },
@@ -12,6 +13,25 @@ const menuItems = [
 ];
 
 const AdminSidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to log out?"
+    );
+
+    if (!confirmed) return;
+
+    // Clear the admin authentication token.
+    localStorage.removeItem("adminToken");
+
+    // Also clear any session-based admin token if used.
+    sessionStorage.removeItem("adminToken");
+
+    // Redirect to the admin login page.
+    navigate("/admin/login", { replace: true });
+  };
+
   return (
     <aside className="sticky top-0 z-40 flex h-screen w-[70px] shrink-0 flex-col bg-[#10233f] text-white md:w-[255px]">
       {/* Logo */}
@@ -33,7 +53,7 @@ const AdminSidebar = () => {
         MAIN MENU
       </div>
 
-      {/* Navigation - scrollbar hidden */}
+      {/* Navigation */}
       <nav className="sidebar-scroll flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 pt-5 md:pt-0">
         {menuItems.map((item) => (
           <NavLink
@@ -52,7 +72,9 @@ const AdminSidebar = () => {
               {item.icon}
             </span>
 
-            <span className="hidden md:inline">{item.name}</span>
+            <span className="hidden md:inline">
+              {item.name}
+            </span>
           </NavLink>
         ))}
       </nav>
@@ -62,12 +84,16 @@ const AdminSidebar = () => {
         <button
           type="button"
           title="Logout"
-          className="flex h-11 w-full items-center justify-center gap-3 rounded-lg px-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white md:justify-start"
+          onClick={handleLogout}
+          className="flex h-11 w-full items-center justify-center gap-3 rounded-lg px-3 text-sm text-slate-300 transition hover:bg-red-500/20 hover:text-red-300 md:justify-start"
         >
           <span className="w-[22px] shrink-0 text-center text-lg">
             ↪
           </span>
-          <span className="hidden md:inline">Logout</span>
+
+          <span className="hidden md:inline">
+            Logout
+          </span>
         </button>
       </div>
     </aside>
