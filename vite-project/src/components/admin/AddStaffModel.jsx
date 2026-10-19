@@ -1,4 +1,7 @@
+
 import React, { useState } from "react";
+
+const API_URL = "http://localhost:3000/api/staff";
 
 const DEPARTMENTS = [
   "Roads & Infrastructure",
@@ -22,6 +25,7 @@ const ROLES = [
 const AddStaffModal = ({ onClose, onAddStaff }) => {
   const [photo, setPhoto] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -54,13 +58,15 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please select an image file.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Please select a JPG, PNG, or WebP image.");
+      e.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Photo size must be less than 5 MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Photo size must not exceed 2 MB.");
+      e.target.value = "";
       return;
     }
 
@@ -72,23 +78,87 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
     setPhotoFile(file);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) return;
 
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match.");
       return;
     }
 
-    const { confirmPassword, password, ...staffDetails } = formData;
+    if (formData.password.length < 8) {
+      alert("Password must be at least 8 characters long.");
+      return;
+    }
 
-    onAddStaff({
-      ...staffDetails,
-      password,
-      photo,
-      photoFile,
-      experience: Number(formData.experience),
-    });
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("adminToken");
+
+      if (!token) {
+        throw new Error(
+          "Admin token not found. Please log in again or check your login token key."
+        );
+      }
+
+      const data = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        data.append(key, value);
+      });
+
+      if (photoFile) {
+        data.append("photo", photoFile);
+      }
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: data,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.message || "Failed to create staff account."
+        );
+      }
+
+      // The backend has successfully saved this staff member.
+      // The parent callback should update the UI only, not POST again.
+      if (onAddStaff) {
+        await onAddStaff(result.staff);
+      }
+
+      alert(result.message || "Staff added successfully!");
+
+      if (photo) {
+        URL.revokeObjectURL(photo);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Add staff error:", error);
+      alert(error.message || "Unable to connect to the backend.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (isSubmitting) return;
+
+    if (photo) {
+      URL.revokeObjectURL(photo);
+    }
+
+    onClose();
   };
 
   return (
@@ -108,8 +178,9 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
 
           <button
             type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-2xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
           >
             ×
           </button>
@@ -134,7 +205,9 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-3xl text-slate-400">👤</span>
+                    <span className="text-3xl text-slate-400">
+                      👤
+                    </span>
                   )}
                 </div>
 
@@ -143,14 +216,16 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
                     Profile Photo
                   </p>
                   <p className="mb-3 mt-1 text-xs text-slate-500">
-                    JPG, PNG or JPEG. Maximum 5 MB.
+                    JPG, PNG or WebP. Maximum 2 MB.
                   </p>
+
                   <label className="inline-block cursor-pointer rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                     Choose Photo
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/jpg"
+                      accept="image/png,image/jpeg,image/webp"
                       onChange={handlePhotoChange}
+                      disabled={isSubmitting}
                       className="hidden"
                     />
                   </label>
@@ -230,7 +305,7 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
 
                   <p className="mt-2 text-xs text-slate-500">
                     Choose the department responsible for the complaint
-                      categories this staff member will handle.
+                    categories this staff member will handle.
                   </p>
                 </div>
 
@@ -268,6 +343,7 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Full Address
                   </label>
+
                   <textarea
                     name="address"
                     value={formData.address}
@@ -337,17 +413,19 @@ const AddStaffModal = ({ onClose, onAddStaff }) => {
             <div className="mt-8 flex justify-end gap-3 border-t border-slate-200 pt-6">
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 type="submit"
-                className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                disabled={isSubmitting}
+                className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Create Staff
+                {isSubmitting ? "Creating Staff..." : "Create Staff"}
               </button>
             </div>
           </form>
@@ -409,6 +487,7 @@ const Select = ({
       className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
     >
       <option value="">{placeholder}</option>
+
       {options.map((option) => (
         <option key={option} value={option}>
           {option}
