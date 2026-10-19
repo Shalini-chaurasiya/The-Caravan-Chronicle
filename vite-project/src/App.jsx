@@ -18,68 +18,125 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* Default */}
+        {/* =========================
+            DEFAULT ROUTE
+        ========================= */}
         <Route
           path="/"
           element={<Navigate to="/admin/login" replace />}
         />
 
-        {/* Admin Login */}
+        {/* =========================
+            ADMIN LOGIN
+        ========================= */}
         <Route
           path="/admin/login"
           element={<AdminLogin />}
         />
 
-        {/* Admin Dashboard */}
+        {/* =========================
+            ADMIN DASHBOARD
+        ========================= */}
         <Route
           path="/admin/dashboard"
           element={<AdminDashboard />}
         />
 
-        {/* Admin Pages */}
+        {/* =========================
+            COMPLAINTS
+        ========================= */}
+
+        {/* All Complaints */}
         <Route
           path="/admin/complaints"
           element={<AllComplaints />}
         />
 
+        {/* Complaint Details */}
         <Route
           path="/admin/complaints/:id"
           element={<ComplaintDetails />}
         />
+
+        {/* =========================
+            STAFF MANAGEMENT
+        ========================= */}
 
         <Route
           path="/admin/staff"
           element={<StaffManagement />}
         />
 
+        {/* =========================
+            DEPARTMENTS
+        ========================= */}
+
         <Route
           path="/admin/departments"
           element={<Departments />}
         />
+
+        {/* =========================
+            SLA & ESCALATION
+        ========================= */}
 
         <Route
           path="/admin/sla"
           element={<SLASettings />}
         />
 
+        {/* =========================
+            REPORTS & ANALYTICS
+        ========================= */}
+
         <Route
           path="/admin/reports"
           element={<ReportsAnalytics />}
         />
+
+        {/* =========================
+            PUBLIC PORTAL
+        ========================= */}
 
         <Route
           path="/admin/public-portal"
           element={<PublicPortal />}
         />
 
+        {/* =========================
+            ACTIVITY LOG
+        ========================= */}
+
         <Route
           path="/admin/activity-log"
           element={<ActivityLog />}
         />
 
+        {/* =========================
+            ADMIN PROFILE
+        ========================= */}
+
         <Route
           path="/admin/profile"
           element={<Profile />}
+        />
+
+        {/* =========================
+            INVALID ADMIN ROUTE
+        ========================= */}
+
+        <Route
+          path="/admin/*"
+          element={<Navigate to="/admin/dashboard" replace />}
+        />
+
+        {/* =========================
+            INVALID ROUTE
+        ========================= */}
+
+        <Route
+          path="*"
+          element={<Navigate to="/admin/login" replace />}
         />
 
       </Routes>
