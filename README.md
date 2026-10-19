@@ -533,10 +533,10 @@ Possible future enhancements include:
 
 ## 👩‍💻 Author
 
-**Shalini Chaurasiya**
-**Vaishnavi Gupta**
-**Astha Singh**
-**Usha Kumari**
+**Shalini Chaurasiya** |
+**Vaishnavi Gupta** |
+**Astha Singh** |
+**Usha Kumari** 
 
 B.Tech — Electronics & Communication Engineering  
 MNNIT Allahabad / Prayagraj
