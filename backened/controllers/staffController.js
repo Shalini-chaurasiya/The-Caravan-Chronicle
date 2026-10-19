@@ -3,6 +3,10 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import Staff from "../models/Staff.js";
 
+// ============================================
+// CREATE STAFF
+// POST /api/staff
+// ============================================
 const createStaff = async (req, res) => {
   try {
     const {
@@ -22,7 +26,6 @@ const createStaff = async (req, res) => {
       confirmPassword,
     } = req.body;
 
-    // Validate required fields
     if (
       !name?.trim() ||
       !email?.trim() ||
@@ -74,19 +77,21 @@ const createStaff = async (req, res) => {
       dob: dob || undefined,
       department,
       role: role || "Staff",
-      experience: experience === "" || experience == null
-        ? 0
-        : Number(experience),
+      experience:
+        experience === "" || experience == null
+          ? 0
+          : Number(experience),
       address,
       city,
       state,
       pincode,
-      photo: req.file ? `/uploads/staff/${req.file.filename}` : "",
+      photo: req.file
+        ? `/uploads/staff/${req.file.filename}`
+        : "",
       password: hashedPassword,
       status: "Active",
     });
 
-    // Never send the password back to the frontend
     const staffResponse = staff.toObject();
     delete staffResponse.password;
 
@@ -119,11 +124,16 @@ const createStaff = async (req, res) => {
   }
 };
 
+// ============================================
+// GET ALL STAFF
+// GET /api/staff
+// ============================================
 const getAllStaff = async (req, res) => {
   try {
     const staff = await Staff.find()
       .select("-password")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.status(200).json({
       success: true,
@@ -140,4 +150,261 @@ const getAllStaff = async (req, res) => {
   }
 };
 
-export { createStaff, getAllStaff };
+// ============================================
+// GET ONE STAFF MEMBER
+// GET /api/staff/:id
+// ============================================
+const getStaffById = async (req, res) => {
+  try {
+    const staff = await Staff.findById(req.params.id)
+      .select("-password")
+      .lean();
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      staff,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid staff ID.",
+      });
+    }
+
+    console.error("Get staff details error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching staff details.",
+    });
+  }
+};
+
+// ============================================
+// UPDATE STAFF
+// PUT /api/staff/:id
+// ============================================
+const updateStaff = async (req, res) => {
+  try {
+    const allowedFields = [
+      "name",
+      "email",
+      "phone",
+      "gender",
+      "dob",
+      "department",
+      "role",
+      "experience",
+      "address",
+      "city",
+      "state",
+      "pincode",
+    ];
+
+    const updates = {};
+
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (updates.name !== undefined) {
+      if (!updates.name.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Name cannot be empty.",
+        });
+      }
+
+      updates.name = updates.name.trim();
+    }
+
+    if (updates.email !== undefined) {
+      if (!updates.email.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Email cannot be empty.",
+        });
+      }
+
+      updates.email = updates.email.trim().toLowerCase();
+    }
+
+    if (updates.phone !== undefined) {
+      updates.phone = updates.phone.trim();
+    }
+
+    if (updates.experience !== undefined) {
+      updates.experience = Number(updates.experience);
+
+      if (
+        !Number.isFinite(updates.experience) ||
+        updates.experience < 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Experience must be a non-negative number.",
+        });
+      }
+    }
+
+    // Only replace the photo if a new one was uploaded.
+    if (req.file) {
+      updates.photo = `/uploads/staff/${req.file.filename}`;
+    }
+
+    const staff = await Staff.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).select("-password");
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff details updated successfully.",
+      staff,
+    });
+  } catch (error) {
+    console.error("Update staff error:", error);
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Another staff member already uses this email.",
+      });
+    }
+
+    if (
+      error.name === "ValidationError" ||
+      error.name === "CastError"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message || "Invalid staff ID or data.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating staff.",
+    });
+  }
+};
+
+// ============================================
+// ACTIVATE / DEACTIVATE STAFF
+// PATCH /api/staff/:id/status
+// ============================================
+const toggleStaffStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["Active", "Inactive"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be "Active" or "Inactive".',
+      });
+    }
+
+    const staff = await Staff.findByIdAndUpdate(
+      req.params.id,
+      { $set: { status } },
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).select("-password");
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Staff member is now ${status.toLowerCase()}.`,
+      staff,
+    });
+  } catch (error) {
+    console.error("Toggle staff status error:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid staff ID.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating staff status.",
+    });
+  }
+};
+
+// ============================================
+// DELETE STAFF
+// DELETE /api/staff/:id
+// ============================================
+const deleteStaff = async (req, res) => {
+  try {
+    const staff = await Staff.findByIdAndDelete(req.params.id);
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff member deleted successfully.",
+      staffId: staff._id,
+    });
+  } catch (error) {
+    console.error("Delete staff error:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid staff ID.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while deleting staff.",
+    });
+  }
+};
+
+export {
+  createStaff,
+  getAllStaff,
+  getStaffById,
+  updateStaff,
+  toggleStaffStatus,
+  deleteStaff,
+};

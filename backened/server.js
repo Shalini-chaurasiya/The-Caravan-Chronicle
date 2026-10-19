@@ -25,13 +25,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ==========================================
-// DNS
+// DNS CONFIGURATION
 // ==========================================
 
-dns.setServers([
-  "8.8.8.8",
-  "8.8.4.4",
-]);
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 // ==========================================
 // EXPRESS APP
@@ -54,7 +51,7 @@ app.use(
 );
 
 // ==========================================
-// BODY PARSER
+// BODY PARSERS
 // ==========================================
 
 app.use(express.json());
@@ -67,7 +64,7 @@ app.use(
 
 // ==========================================
 // SERVE UPLOADED FILES
-// Files stored in backened/uploads/
+// Files are stored in backened/uploads/
 // ==========================================
 
 app.use(
@@ -90,29 +87,19 @@ app.get("/", (req, res) => {
 // API ROUTES
 // ==========================================
 
-// AUTH
 app.use("/api/auth", authRoutes);
-
-// CONTACT
 app.use("/api/contact", contactRoutes);
-
-// DASHBOARD
 app.use("/api/dashboard", dashboardRoutes);
-
-// COMPLAINTS
 app.use("/api/complaints", complaintRoutes);
-
-// PROFILE
 app.use("/api/profile", profileRoutes);
-
-// ADMIN
 app.use("/api/admin", adminRoutes);
 
-// STAFF
+// Staff management APIs
+// Authentication is handled inside staffRoutes.js
 app.use("/api/staff", staffRoutes);
 
 // ==========================================
-// 404 ROUTE
+// 404 HANDLER
 // ==========================================
 
 app.use((req, res) => {
@@ -129,7 +116,7 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("Server Error:", err);
 
-  // Handle Multer upload errors
+  // Multer upload errors
   if (err.name === "MulterError") {
     return res.status(400).json({
       success: false,
@@ -140,7 +127,7 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // Handle invalid photo formats and other upload errors
+  // Invalid photo format
   if (
     err.message ===
     "Only JPG, PNG, and WebP images are allowed."
@@ -151,7 +138,8 @@ app.use((err, req, res, next) => {
     });
   }
 
-  res.status(err.status || 500).json({
+  // Other errors
+  return res.status(err.status || 500).json({
     success: false,
     message: err.message || "Internal server error",
   });
@@ -200,8 +188,7 @@ const startServer = async () => {
     console.error("==========================================");
     console.error("SERVER STARTUP FAILED");
     console.error("==========================================");
-
-    console.error(error.message);
+    console.error(error);
 
     process.exit(1);
   }
