@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import StaffTable from "./StaffTable";
-import AddStaffModal from "./AddStaffModal";
+import AddStaffModal from "./AddStaffModel";
 
 const StaffManagement = () => {
   const [showAddStaff, setShowAddStaff] = useState(false);
