@@ -1,86 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 const API_BASE_URL = "http://localhost:3000/api";
-const STAFF_API_URL = `${API_BASE_URL}/staff`;
 
-// ======================================================
-// INITIAL DEPARTMENTS
-// ======================================================
+const DEPARTMENT_API_URL =
+  `${API_BASE_URL}/departments`;
 
-const INITIAL_DEPARTMENTS = [
-  {
-    id: 1,
-    name: "Water Supply",
-    description:
-      "Manages water distribution, supply and related infrastructure.",
-    icon: "💧",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Roads & Infrastructure",
-    description:
-      "Handles road maintenance, potholes, footpaths and public infrastructure.",
-    icon: "🛣️",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Electrical & Street Lighting",
-    description:
-      "Manages electrical systems, street lights and power infrastructure.",
-    icon: "⚡",
-    status: "Active",
-  },
-  {
-    id: 4,
-    name: "Drainage & Sewerage",
-    description:
-      "Handles drainage, sewerage and flood management.",
-    icon: "🚰",
-    status: "Active",
-  },
-  {
-    id: 5,
-    name: "Sanitation",
-    description:
-      "Manages garbage collection, cleanliness and waste management.",
-    icon: "🗑️",
-    status: "Active",
-  },
-  {
-    id: 6,
-    name: "Parks & Horticulture",
-    description:
-      "Maintains parks, gardens and green spaces.",
-    icon: "🌿",
-    status: "Active",
-  },
-  {
-    id: 7,
-    name: "Traffic Management",
-    description:
-      "Handles traffic signals, road safety and mobility.",
-    icon: "🚦",
-    status: "Active",
-  },
-  {
-    id: 8,
-    name: "Building & Construction",
-    description:
-      "Manages building permissions, construction and urban development.",
-    icon: "🏢",
-    status: "Active",
-  },
-  {
-    id: 9,
-    name: "General Administration",
-    description:
-      "Handles general municipal administration and public services.",
-    icon: "🏛️",
-    status: "Active",
-  },
-];
+const STAFF_API_URL =
+  `${API_BASE_URL}/staff`;
 
 // ======================================================
 // ICON OPTIONS
@@ -118,15 +49,21 @@ const getToken = () => {
 // API REQUEST
 // ======================================================
 
-const apiRequest = async (url, options = {}) => {
+const apiRequest = async (
+  url,
+  options = {}
+) => {
   const token = getToken();
 
   if (!token) {
-    throw new Error("Admin token not found. Please log in again.");
+    throw new Error(
+      "Admin token not found. Please log in again."
+    );
   }
 
   const response = await fetch(url, {
     ...options,
+
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -134,11 +71,13 @@ const apiRequest = async (url, options = {}) => {
     },
   });
 
-  const data = await response.json().catch(() => ({}));
+  const data =
+    await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
-      data.message || "Something went wrong with the request."
+      data.message ||
+        "Something went wrong with the request."
     );
   }
 
@@ -154,9 +93,11 @@ const Departments = () => {
   // DEPARTMENT STATE
   // ----------------------------------------------------
 
-  const [departments, setDepartments] = useState(
-    INITIAL_DEPARTMENTS
-  );
+  const [departments, setDepartments] =
+    useState([]);
+
+  const [loadingDepartments, setLoadingDepartments] =
+    useState(true);
 
   // ----------------------------------------------------
   // STAFF STATE
@@ -164,7 +105,12 @@ const Departments = () => {
 
   const [staff, setStaff] = useState([]);
 
-  const [loadingStaff, setLoadingStaff] = useState(true);
+  const [loadingStaff, setLoadingStaff] =
+    useState(true);
+
+  // ----------------------------------------------------
+  // ERROR
+  // ----------------------------------------------------
 
   const [error, setError] = useState("");
 
@@ -177,36 +123,90 @@ const Departments = () => {
   const [departmentFilter, setDepartmentFilter] =
     useState("");
 
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState("");
 
   // ----------------------------------------------------
   // ADD / EDIT MODAL
   // ----------------------------------------------------
 
-  const [showDepartmentModal, setShowDepartmentModal] =
-    useState(false);
+  const [
+    showDepartmentModal,
+    setShowDepartmentModal,
+  ] = useState(false);
 
-  const [editingDepartment, setEditingDepartment] =
-    useState(null);
+  const [
+    editingDepartment,
+    setEditingDepartment,
+  ] = useState(null);
 
-  const [departmentForm, setDepartmentForm] = useState({
+  const [
+    departmentForm,
+    setDepartmentForm,
+  ] = useState({
     name: "",
     description: "",
     icon: "🏢",
     status: "Active",
   });
 
+  const [
+    savingDepartment,
+    setSavingDepartment,
+  ] = useState(false);
+
   // ----------------------------------------------------
   // VIEW STAFF MODAL
   // ----------------------------------------------------
 
-  const [showStaffModal, setShowStaffModal] =
-    useState(false);
+  const [
+    showStaffModal,
+    setShowStaffModal,
+  ] = useState(false);
 
-  const [selectedDepartment, setSelectedDepartment] =
-    useState(null);
+  const [
+    selectedDepartment,
+    setSelectedDepartment,
+  ] = useState(null);
 
-  const [staffSearch, setStaffSearch] = useState("");
+  const [staffSearch, setStaffSearch] =
+    useState("");
+
+  // ====================================================
+  // FETCH DEPARTMENTS
+  // ====================================================
+
+  const fetchDepartments = async () => {
+    try {
+      setLoadingDepartments(true);
+      setError("");
+
+      const data = await apiRequest(
+        DEPARTMENT_API_URL
+      );
+
+      const departmentList =
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data.departments)
+          ? data.departments
+          : [];
+
+      setDepartments(departmentList);
+    } catch (err) {
+      console.error(
+        "Fetch departments error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to load departments."
+      );
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
 
   // ====================================================
   // FETCH STAFF
@@ -215,29 +215,40 @@ const Departments = () => {
   const fetchStaff = async () => {
     try {
       setLoadingStaff(true);
-      setError("");
 
-      const data = await apiRequest(STAFF_API_URL);
+      const data = await apiRequest(
+        STAFF_API_URL
+      );
 
-      const members = Array.isArray(data)
-        ? data
-        : Array.isArray(data.staff)
-        ? data.staff
-        : [];
+      const members =
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data.staff)
+          ? data.staff
+          : [];
 
       setStaff(members);
     } catch (err) {
-      console.error("Fetch staff error:", err);
+      console.error(
+        "Fetch staff error:",
+        err
+      );
 
       setError(
-        err.message || "Unable to load staff information."
+        err.message ||
+          "Unable to load staff information."
       );
     } finally {
       setLoadingStaff(false);
     }
   };
 
+  // ====================================================
+  // INITIAL DATA
+  // ====================================================
+
   useEffect(() => {
+    fetchDepartments();
     fetchStaff();
   }, []);
 
@@ -246,155 +257,232 @@ const Departments = () => {
   // ====================================================
 
   const departmentData = useMemo(() => {
-    return departments.map((department) => {
-      const departmentStaff = staff.filter(
-        (member) =>
-          String(member.department || "").trim() ===
-          department.name
-      );
+    return departments.map(
+      (department) => {
+        const departmentStaff =
+          staff.filter(
+            (member) =>
+              String(
+                member.department || ""
+              ).trim() ===
+              String(
+                department.name || ""
+              ).trim()
+          );
 
-      const activeStaff = departmentStaff.filter(
-        (member) => member.status === "Active"
-      ).length;
+        const activeStaff =
+          departmentStaff.filter(
+            (member) =>
+              member.status === "Active"
+          ).length;
 
-      const inactiveStaff = departmentStaff.filter(
-        (member) => member.status === "Inactive"
-      ).length;
+        const inactiveStaff =
+          departmentStaff.filter(
+            (member) =>
+              member.status === "Inactive"
+          ).length;
 
-      const complaints = departmentStaff.reduce(
-        (total, member) =>
-          total +
-          Number(
-            member.complaints ??
-              member.assignedComplaints ??
-              member.complaintCount ??
-              0
-          ),
-        0
-      );
+        const complaints =
+          department.complaints ??
+          department.assignedComplaints ??
+          department.complaintCount ??
+          0;
 
-      const resolvedComplaints = departmentStaff.reduce(
-        (total, member) =>
-          total +
-          Number(
-            member.resolvedComplaints ??
-              member.resolvedComplaintCount ??
-              0
-          ),
-        0
-      );
+        const resolvedComplaints =
+          department.resolvedComplaints ??
+          department.resolvedComplaintCount ??
+          0;
 
-      return {
-        ...department,
-        totalStaff: departmentStaff.length,
-        activeStaff,
-        inactiveStaff,
-        complaints,
-        resolvedComplaints,
-      };
-    });
+        return {
+          ...department,
+
+          totalStaff:
+            department.totalStaff ??
+            departmentStaff.length,
+
+          activeStaff:
+            department.activeStaff ??
+            activeStaff,
+
+          inactiveStaff:
+            department.inactiveStaff ??
+            inactiveStaff,
+
+          complaints:
+            Number(complaints),
+
+          resolvedComplaints:
+            Number(
+              resolvedComplaints
+            ),
+        };
+      }
+    );
   }, [departments, staff]);
 
   // ====================================================
   // FILTER DEPARTMENTS
   // ====================================================
 
-  const filteredDepartments = useMemo(() => {
-    const term = search.trim().toLowerCase();
+  const filteredDepartments =
+    useMemo(() => {
+      const term =
+        search
+          .trim()
+          .toLowerCase();
 
-    return departmentData.filter((department) => {
-      const matchesSearch =
-        !term ||
-        department.name
-          .toLowerCase()
-          .includes(term) ||
-        department.description
-          .toLowerCase()
-          .includes(term);
+      return departmentData.filter(
+        (department) => {
+          const departmentName =
+            String(
+              department.name || ""
+            ).toLowerCase();
 
-      const matchesDepartment =
-        !departmentFilter ||
-        department.name === departmentFilter;
+          const description =
+            String(
+              department.description ||
+                ""
+            ).toLowerCase();
 
-      const matchesStatus =
-        !statusFilter ||
-        department.status === statusFilter;
+          const matchesSearch =
+            !term ||
+            departmentName.includes(
+              term
+            ) ||
+            description.includes(
+              term
+            );
 
-      return (
-        matchesSearch &&
-        matchesDepartment &&
-        matchesStatus
+          const matchesDepartment =
+            !departmentFilter ||
+            department.name ===
+              departmentFilter;
+
+          const matchesStatus =
+            !statusFilter ||
+            department.status ===
+              statusFilter;
+
+          return (
+            matchesSearch &&
+            matchesDepartment &&
+            matchesStatus
+          );
+        }
       );
-    });
-  }, [
-    departmentData,
-    search,
-    departmentFilter,
-    statusFilter,
-  ]);
+    }, [
+      departmentData,
+      search,
+      departmentFilter,
+      statusFilter,
+    ]);
 
   // ====================================================
   // SELECTED DEPARTMENT STAFF
   // ====================================================
 
-  const selectedDepartmentStaff = useMemo(() => {
-    if (!selectedDepartment) return [];
+  const selectedDepartmentStaff =
+    useMemo(() => {
+      if (!selectedDepartment) {
+        return [];
+      }
 
-    const term = staffSearch.trim().toLowerCase();
+      const term =
+        staffSearch
+          .trim()
+          .toLowerCase();
 
-    return staff.filter((member) => {
-      const sameDepartment =
-        String(member.department || "").trim() ===
-        selectedDepartment.name;
+      return staff.filter(
+        (member) => {
+          const sameDepartment =
+            String(
+              member.department || ""
+            ).trim() ===
+            String(
+              selectedDepartment.name ||
+                ""
+            ).trim();
 
-      if (!sameDepartment) return false;
+          if (!sameDepartment) {
+            return false;
+          }
 
-      if (!term) return true;
+          if (!term) {
+            return true;
+          }
 
-      return (
-        String(member.name || "")
-          .toLowerCase()
-          .includes(term) ||
-        String(member.email || "")
-          .toLowerCase()
-          .includes(term) ||
-        String(member.phone || "")
-          .toLowerCase()
-          .includes(term) ||
-        String(member.staffId || "")
-          .toLowerCase()
-          .includes(term) ||
-        String(member.role || "")
-          .toLowerCase()
-          .includes(term)
+          return (
+            String(
+              member.name || ""
+            )
+              .toLowerCase()
+              .includes(term) ||
+            String(
+              member.email || ""
+            )
+              .toLowerCase()
+              .includes(term) ||
+            String(
+              member.phone || ""
+            )
+              .toLowerCase()
+              .includes(term) ||
+            String(
+              member.staffId || ""
+            )
+              .toLowerCase()
+              .includes(term) ||
+            String(
+              member.role || ""
+            )
+              .toLowerCase()
+              .includes(term)
+          );
+        }
       );
-    });
-  }, [staff, selectedDepartment, staffSearch]);
+    }, [
+      staff,
+      selectedDepartment,
+      staffSearch,
+    ]);
 
   // ====================================================
   // STATISTICS
   // ====================================================
 
-  const totalDepartments = departments.length;
+  const totalDepartments =
+    departments.length;
 
-  const totalStaff = staff.length;
+  const totalStaff =
+    staff.length;
 
-  const totalComplaints = departmentData.reduce(
-    (total, department) =>
-      total + department.complaints,
-    0
-  );
+  const totalComplaints =
+    departmentData.reduce(
+      (total, department) =>
+        total +
+        Number(
+          department.complaints || 0
+        ),
+      0
+    );
 
-  const resolvedComplaints = departmentData.reduce(
-    (total, department) =>
-      total + department.resolvedComplaints,
-    0
-  );
+  const resolvedComplaints =
+    departmentData.reduce(
+      (total, department) =>
+        total +
+        Number(
+          department.resolvedComplaints ||
+            0
+        ),
+      0
+    );
 
   const resolutionRate =
     totalComplaints > 0
       ? Math.round(
-          (resolvedComplaints / totalComplaints) * 100
+          (resolvedComplaints /
+            totalComplaints) *
+            100
         )
       : 0;
 
@@ -419,14 +507,24 @@ const Departments = () => {
   // OPEN EDIT DEPARTMENT
   // ====================================================
 
-  const openEditDepartment = (department) => {
-    setEditingDepartment(department);
+  const openEditDepartment = (
+    department
+  ) => {
+    setEditingDepartment(
+      department
+    );
 
     setDepartmentForm({
-      name: department.name,
-      description: department.description,
-      icon: department.icon,
-      status: department.status,
+      name:
+        department.name || "",
+      description:
+        department.description ||
+        "",
+      icon:
+        department.icon || "🏢",
+      status:
+        department.status ||
+        "Active",
     });
 
     setShowDepartmentModal(true);
@@ -436,140 +534,320 @@ const Departments = () => {
   // FORM CHANGE
   // ====================================================
 
-  const handleDepartmentFormChange = (e) => {
-    const { name, value } = e.target;
+  const handleDepartmentFormChange =
+    (e) => {
+      const {
+        name,
+        value,
+      } = e.target;
 
-    setDepartmentForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
-  };
+      setDepartmentForm(
+        (previous) => ({
+          ...previous,
+          [name]: value,
+        })
+      );
+    };
 
   // ====================================================
   // SAVE DEPARTMENT
   // ====================================================
 
-  const handleSaveDepartment = (e) => {
-    e.preventDefault();
+  const handleSaveDepartment =
+    async (e) => {
+      e.preventDefault();
 
-    const name = departmentForm.name.trim();
+      const name =
+        departmentForm.name.trim();
 
-    const description =
-      departmentForm.description.trim();
+      const description =
+        departmentForm.description.trim();
 
-    if (!name) {
-      window.alert("Please enter department name.");
-      return;
-    }
+      if (!name) {
+        window.alert(
+          "Please enter department name."
+        );
+        return;
+      }
 
-    if (!description) {
-      window.alert(
-        "Please enter department description."
-      );
-      return;
-    }
+      if (!description) {
+        window.alert(
+          "Please enter department description."
+        );
+        return;
+      }
 
-    // --------------------------------------------------
-    // EDIT
-    // --------------------------------------------------
+      try {
+        setSavingDepartment(true);
+        setError("");
 
-    if (editingDepartment) {
-      setDepartments((previous) =>
-        previous.map((department) =>
-          department.id === editingDepartment.id
-            ? {
-                ...department,
+        // ----------------------------------------------
+        // EDIT
+        // ----------------------------------------------
+
+        if (editingDepartment) {
+          const data =
+            await apiRequest(
+              `${DEPARTMENT_API_URL}/${editingDepartment._id}`,
+              {
+                method: "PUT",
+
+                body: JSON.stringify({
+                  name,
+                  description,
+                  icon:
+                    departmentForm.icon,
+                  status:
+                    departmentForm.status,
+                }),
+              }
+            );
+
+          const updatedDepartment =
+            data.department;
+
+          setDepartments(
+            (previous) =>
+              previous.map(
+                (department) =>
+                  department._id ===
+                  editingDepartment._id
+                    ? {
+                        ...department,
+                        ...updatedDepartment,
+                      }
+                    : department
+              )
+          );
+
+          // If department name changed,
+          // refresh staff because backend
+          // updates their department.
+          await fetchStaff();
+
+          setShowDepartmentModal(
+            false
+          );
+
+          setEditingDepartment(
+            null
+          );
+
+          return;
+        }
+
+        // ----------------------------------------------
+        // ADD
+        // ----------------------------------------------
+
+        const data =
+          await apiRequest(
+            DEPARTMENT_API_URL,
+            {
+              method: "POST",
+
+              body: JSON.stringify({
                 name,
                 description,
-                icon: departmentForm.icon,
-                status: departmentForm.status,
-              }
-            : department
-        )
-      );
+                icon:
+                  departmentForm.icon,
+                status:
+                  departmentForm.status,
+              }),
+            }
+          );
 
-      setShowDepartmentModal(false);
+        const newDepartment =
+          data.department;
 
-      return;
-    }
+        setDepartments(
+          (previous) => [
+            ...previous,
+            newDepartment,
+          ]
+        );
 
-    // --------------------------------------------------
-    // CHECK DUPLICATE
-    // --------------------------------------------------
+        setShowDepartmentModal(
+          false
+        );
 
-    const alreadyExists = departments.some(
-      (department) =>
-        department.name.toLowerCase() ===
-        name.toLowerCase()
-    );
+        setDepartmentForm({
+          name: "",
+          description: "",
+          icon: "🏢",
+          status: "Active",
+        });
+      } catch (err) {
+        console.error(
+          "Save department error:",
+          err
+        );
 
-    if (alreadyExists) {
-      window.alert(
-        "A department with this name already exists."
-      );
-      return;
-    }
-
-    // --------------------------------------------------
-    // ADD
-    // --------------------------------------------------
-
-    const newDepartment = {
-      id: Date.now(),
-      name,
-      description,
-      icon: departmentForm.icon,
-      status: departmentForm.status,
+        window.alert(
+          err.message ||
+            "Unable to save department."
+        );
+      } finally {
+        setSavingDepartment(false);
+      }
     };
-
-    setDepartments((previous) => [
-      ...previous,
-      newDepartment,
-    ]);
-
-    setShowDepartmentModal(false);
-  };
 
   // ====================================================
   // DELETE DEPARTMENT
   // ====================================================
 
-  const handleDeleteDepartment = (department) => {
-    const departmentStaff = staff.filter(
-      (member) =>
-        String(member.department || "").trim() ===
-        department.name
-    );
+  const handleDeleteDepartment =
+    async (department) => {
+      const confirmed =
+        window.confirm(
+          `Are you sure you want to delete "${department.name}"?`
+        );
 
-    if (departmentStaff.length > 0) {
-      window.alert(
-        `Cannot delete ${department.name} because ${departmentStaff.length} staff member(s) are currently assigned to this department.`
-      );
+      if (!confirmed) {
+        return;
+      }
 
-      return;
-    }
+      try {
+        setError("");
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${department.name}"?`
-    );
+        await apiRequest(
+          `${DEPARTMENT_API_URL}/${department._id}`,
+          {
+            method: "DELETE",
+          }
+        );
 
-    if (!confirmed) return;
+        setDepartments(
+          (previous) =>
+            previous.filter(
+              (item) =>
+                item._id !==
+                department._id
+            )
+        );
 
-    setDepartments((previous) =>
-      previous.filter(
-        (item) => item.id !== department.id
-      )
-    );
-  };
+        if (
+          selectedDepartment?._id ===
+          department._id
+        ) {
+          setShowStaffModal(false);
+          setSelectedDepartment(null);
+        }
+      } catch (err) {
+        console.error(
+          "Delete department error:",
+          err
+        );
+
+        window.alert(
+          err.message ||
+            "Unable to delete department."
+        );
+      }
+    };
 
   // ====================================================
   // VIEW STAFF
   // ====================================================
 
-  const handleViewStaff = (department) => {
-    setSelectedDepartment(department);
+  const handleViewStaff =
+    async (department) => {
+      try {
+        setError("");
+
+        setSelectedDepartment(
+          department
+        );
+
+        setStaffSearch("");
+
+        setShowStaffModal(true);
+
+        // ----------------------------------------------
+        // Fetch latest staff specifically for department
+        // ----------------------------------------------
+
+        const data =
+          await apiRequest(
+            `${DEPARTMENT_API_URL}/${department._id}/staff`
+          );
+
+        const departmentStaff =
+          Array.isArray(data.staff)
+            ? data.staff
+            : [];
+
+        // Update the main staff list
+        // with latest department data.
+        setStaff(
+          (previous) => {
+            const otherStaff =
+              previous.filter(
+                (member) =>
+                  String(
+                    member.department ||
+                      ""
+                  ).trim() !==
+                  String(
+                    department.name ||
+                      ""
+                  ).trim()
+              );
+
+            return [
+              ...otherStaff,
+              ...departmentStaff,
+            ];
+          }
+        );
+
+        // Update selected department
+        // statistics from backend.
+        setSelectedDepartment(
+          (previous) =>
+            previous
+              ? {
+                  ...previous,
+                  totalStaff:
+                    data.count ??
+                    department.totalStaff ??
+                    departmentStaff.length,
+                  activeStaff:
+                    departmentStaff.filter(
+                      (member) =>
+                        member.status ===
+                        "Active"
+                    ).length,
+                  inactiveStaff:
+                    departmentStaff.filter(
+                      (member) =>
+                        member.status ===
+                        "Inactive"
+                    ).length,
+                }
+              : previous
+        );
+      } catch (err) {
+        console.error(
+          "View department staff error:",
+          err
+        );
+
+        window.alert(
+          err.message ||
+            "Unable to load department staff."
+        );
+      }
+    };
+
+  // ====================================================
+  // CLOSE STAFF MODAL
+  // ====================================================
+
+  const closeStaffModal = () => {
+    setShowStaffModal(false);
+    setSelectedDepartment(null);
     setStaffSearch("");
-    setShowStaffModal(true);
   };
 
   // ====================================================
@@ -581,6 +859,32 @@ const Departments = () => {
     setDepartmentFilter("");
     setStatusFilter("");
   };
+
+  // ====================================================
+  // BODY SCROLL LOCK
+  // ====================================================
+
+  useEffect(() => {
+    const modalOpen =
+      showDepartmentModal ||
+      showStaffModal;
+
+    if (modalOpen) {
+      document.body.style.overflow =
+        "hidden";
+    } else {
+      document.body.style.overflow =
+        "";
+    }
+
+    return () => {
+      document.body.style.overflow =
+        "";
+    };
+  }, [
+    showDepartmentModal,
+    showStaffModal,
+  ]);
 
   // ====================================================
   // RENDER
@@ -672,14 +976,15 @@ const Departments = () => {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500 md:text-base">
-              Manage all departments, track performance and
-              monitor staff allocation.
+              Manage all departments, track performance and monitor staff allocation.
             </p>
 
           </div>
 
           <button
-            onClick={openAddDepartment}
+            onClick={
+              openAddDepartment
+            }
             className="flex w-fit items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98]"
           >
             <span className="text-xl">
@@ -699,8 +1004,10 @@ const Departments = () => {
 
           <StatCard
             title="Total Departments"
-            value={totalDepartments}
-            subtitle="Active departments"
+            value={
+              totalDepartments
+            }
+            subtitle="Departments in system"
             icon="🏢"
             bg="bg-blue-100"
             text="text-blue-600"
@@ -717,7 +1024,9 @@ const Departments = () => {
 
           <StatCard
             title="Total Complaints"
-            value={totalComplaints}
+            value={
+              totalComplaints
+            }
             subtitle="Assigned complaints"
             icon="📄"
             bg="bg-orange-100"
@@ -726,7 +1035,9 @@ const Departments = () => {
 
           <StatCard
             title="Resolved Complaints"
-            value={resolvedComplaints}
+            value={
+              resolvedComplaints
+            }
             subtitle={`${resolutionRate}% resolution rate`}
             icon="✓"
             bg="bg-purple-100"
@@ -747,7 +1058,10 @@ const Departments = () => {
             </p>
 
             <button
-              onClick={fetchStaff}
+              onClick={() => {
+                fetchDepartments();
+                fetchStaff();
+              }}
               className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
             >
               Retry
@@ -776,7 +1090,9 @@ const Departments = () => {
                 type="text"
                 value={search}
                 onChange={(e) =>
-                  setSearch(e.target.value)
+                  setSearch(
+                    e.target.value
+                  )
                 }
                 placeholder="Search departments..."
                 className="h-11 w-full rounded-lg border border-slate-200 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -787,9 +1103,13 @@ const Departments = () => {
             {/* Department Filter */}
 
             <select
-              value={departmentFilter}
+              value={
+                departmentFilter
+              }
               onChange={(e) =>
-                setDepartmentFilter(e.target.value)
+                setDepartmentFilter(
+                  e.target.value
+                )
               }
               className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-blue-500"
             >
@@ -798,14 +1118,22 @@ const Departments = () => {
                 All Departments
               </option>
 
-              {departments.map((department) => (
-                <option
-                  key={department.id}
-                  value={department.name}
-                >
-                  {department.name}
-                </option>
-              ))}
+              {departments.map(
+                (department) => (
+                  <option
+                    key={
+                      department._id
+                    }
+                    value={
+                      department.name
+                    }
+                  >
+                    {
+                      department.name
+                    }
+                  </option>
+                )
+              )}
 
             </select>
 
@@ -814,7 +1142,9 @@ const Departments = () => {
             <select
               value={statusFilter}
               onChange={(e) =>
-                setStatusFilter(e.target.value)
+                setStatusFilter(
+                  e.target.value
+                )
               }
               className="h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-blue-500"
             >
@@ -845,7 +1175,9 @@ const Departments = () => {
             {/* Reset */}
 
             <button
-              onClick={handleReset}
+              onClick={
+                handleReset
+              }
               type="button"
               className="h-11 rounded-lg border border-slate-200 px-5 text-sm font-medium text-slate-600 hover:bg-slate-50"
             >
@@ -877,13 +1209,21 @@ const Departments = () => {
           <p className="text-sm text-slate-500">
 
             Showing{" "}
+
             <span className="font-semibold text-slate-800">
-              {filteredDepartments.length}
+              {
+                filteredDepartments.length
+              }
             </span>{" "}
+
             of{" "}
+
             <span className="font-semibold text-slate-800">
-              {departments.length}
+              {
+                departments.length
+              }
             </span>{" "}
+
             departments
 
           </p>
@@ -894,19 +1234,20 @@ const Departments = () => {
             DEPARTMENT CARDS
         ================================================== */}
 
-        {loadingStaff ? (
+        {loadingDepartments ? (
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-12 text-center">
 
             <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
 
             <p className="mt-4 text-sm text-slate-500">
-              Loading department information...
+              Loading departments...
             </p>
 
           </div>
 
-        ) : filteredDepartments.length === 0 ? (
+        ) : filteredDepartments.length ===
+          0 ? (
 
           <div className="mt-5 rounded-xl border border-slate-200 bg-white p-12 text-center">
 
@@ -932,11 +1273,21 @@ const Departments = () => {
               (department) => (
 
                 <DepartmentCard
-                  key={department.id}
-                  department={department}
-                  onViewStaff={handleViewStaff}
-                  onEdit={openEditDepartment}
-                  onDelete={handleDeleteDepartment}
+                  key={
+                    department._id
+                  }
+                  department={
+                    department
+                  }
+                  onViewStaff={
+                    handleViewStaff
+                  }
+                  onEdit={
+                    openEditDepartment
+                  }
+                  onDelete={
+                    handleDeleteDepartment
+                  }
                 />
 
               )
@@ -953,26 +1304,31 @@ const Departments = () => {
       ================================================== */}
 
       {showDepartmentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
 
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm sm:items-center">
+
+          <div className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
             {/* Modal Header */}
 
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-5">
 
               <div>
 
                 <h2 className="text-xl font-bold text-slate-900">
+
                   {editingDepartment
                     ? "Edit Department"
                     : "Add Department"}
+
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
+
                   {editingDepartment
                     ? "Update department information."
                     : "Create a new municipal department."}
+
                 </p>
 
               </div>
@@ -980,7 +1336,9 @@ const Departments = () => {
               <button
                 type="button"
                 onClick={() =>
-                  setShowDepartmentModal(false)
+                  setShowDepartmentModal(
+                    false
+                  )
                 }
                 className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               >
@@ -992,8 +1350,10 @@ const Departments = () => {
             {/* Form */}
 
             <form
-              onSubmit={handleSaveDepartment}
-              className="p-6"
+              onSubmit={
+                handleSaveDepartment
+              }
+              className="min-h-0 overflow-y-auto p-6"
             >
 
               {/* Department Name */}
@@ -1007,10 +1367,15 @@ const Departments = () => {
                 <input
                   type="text"
                   name="name"
-                  value={departmentForm.name}
-                  onChange={handleDepartmentFormChange}
+                  value={
+                    departmentForm.name
+                  }
+                  onChange={
+                    handleDepartmentFormChange
+                  }
                   placeholder="e.g. Public Health"
                   className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  required
                 />
 
               </div>
@@ -1025,11 +1390,16 @@ const Departments = () => {
 
                 <textarea
                   name="description"
-                  value={departmentForm.description}
-                  onChange={handleDepartmentFormChange}
+                  value={
+                    departmentForm.description
+                  }
+                  onChange={
+                    handleDepartmentFormChange
+                  }
                   rows="4"
                   placeholder="Enter a short description of this department..."
                   className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  required
                 />
 
               </div>
@@ -1044,29 +1414,32 @@ const Departments = () => {
 
                 <div className="grid grid-cols-6 gap-2">
 
-                  {ICON_OPTIONS.map((icon) => (
+                  {ICON_OPTIONS.map(
+                    (icon) => (
 
-                    <button
-                      key={icon}
-                      type="button"
-                      onClick={() =>
-                        setDepartmentForm(
-                          (previous) => ({
-                            ...previous,
-                            icon,
-                          })
-                        )
-                      }
-                      className={`flex h-11 items-center justify-center rounded-lg border text-xl transition ${
-                        departmentForm.icon === icon
-                          ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
-                          : "border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      {icon}
-                    </button>
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() =>
+                          setDepartmentForm(
+                            (previous) => ({
+                              ...previous,
+                              icon,
+                            })
+                          )
+                        }
+                        className={`flex h-11 items-center justify-center rounded-lg border text-xl transition ${
+                          departmentForm.icon ===
+                          icon
+                            ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                            : "border-slate-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        {icon}
+                      </button>
 
-                  ))}
+                    )
+                  )}
 
                 </div>
 
@@ -1082,8 +1455,12 @@ const Departments = () => {
 
                 <select
                   name="status"
-                  value={departmentForm.status}
-                  onChange={handleDepartmentFormChange}
+                  value={
+                    departmentForm.status
+                  }
+                  onChange={
+                    handleDepartmentFormChange
+                  }
                   className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
 
@@ -1106,20 +1483,32 @@ const Departments = () => {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowDepartmentModal(false)
+                    setShowDepartmentModal(
+                      false
+                    )
                   }
-                  className="rounded-lg border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  disabled={
+                    savingDepartment
+                  }
+                  className="rounded-lg border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                  disabled={
+                    savingDepartment
+                  }
+                  className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {editingDepartment
+
+                  {savingDepartment
+                    ? "Saving..."
+                    : editingDepartment
                     ? "Save Changes"
                     : "Add Department"}
+
                 </button>
 
               </div>
@@ -1129,428 +1518,532 @@ const Departments = () => {
           </div>
 
         </div>
+
       )}
 
       {/* ==================================================
           VIEW STAFF MODAL
       ================================================== */}
 
-      {showStaffModal && selectedDepartment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+      {showStaffModal &&
+        selectedDepartment && (
 
-          <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
 
-            {/* ==================================================
-                STAFF MODAL HEADER
-            ================================================== */}
+            <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
-            <div className="border-b border-slate-200 px-6 py-5">
+              {/* ==================================================
+                  STAFF MODAL HEADER
+              ================================================== */}
 
-              <div className="flex items-start justify-between gap-4">
+              <div className="border-b border-slate-200 px-6 py-5">
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-start justify-between gap-4">
 
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50 text-2xl">
-                    {selectedDepartment.icon}
+                  <div className="flex items-center gap-4">
+
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-blue-50 text-2xl">
+                      {
+                        selectedDepartment.icon ||
+                        "🏢"
+                      }
+                    </div>
+
+                    <div>
+
+                      <h2 className="text-xl font-bold text-slate-900">
+                        {
+                          selectedDepartment.name
+                        }
+                      </h2>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Staff members assigned to this department
+                      </p>
+
+                    </div>
+
                   </div>
 
-                  <div>
-
-                    <h2 className="text-xl font-bold text-slate-900">
-                      {selectedDepartment.name}
-                    </h2>
-
-                    <p className="mt-1 text-sm text-slate-500">
-                      Staff members assigned to this department
-                    </p>
-
-                  </div>
+                  <button
+                    type="button"
+                    onClick={
+                      closeStaffModal
+                    }
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    ×
+                  </button>
 
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowStaffModal(false)
-                  }
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                >
-                  ×
-                </button>
+                {/* STAFF SUMMARY */}
+
+                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+                  <MiniStat
+                    label="Total Staff"
+                    value={
+                      selectedDepartment.totalStaff ??
+                      selectedDepartmentStaff.length
+                    }
+                  />
+
+                  <MiniStat
+                    label="Active"
+                    value={
+                      selectedDepartment.activeStaff ??
+                      selectedDepartmentStaff.filter(
+                        (member) =>
+                          member.status ===
+                          "Active"
+                      ).length
+                    }
+                  />
+
+                  <MiniStat
+                    label="Inactive"
+                    value={
+                      selectedDepartment.inactiveStaff ??
+                      selectedDepartmentStaff.filter(
+                        (member) =>
+                          member.status ===
+                          "Inactive"
+                      ).length
+                    }
+                  />
+
+                  <MiniStat
+                    label="Complaints"
+                    value={
+                      selectedDepartment.complaints ??
+                      0
+                    }
+                  />
+
+                </div>
 
               </div>
 
               {/* ==================================================
-                  STAFF SUMMARY
+                  STAFF SEARCH
               ================================================== */}
 
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
 
-                <MiniStat
-                  label="Total Staff"
-                  value={selectedDepartment.totalStaff}
-                />
+                <div className="relative">
 
-                <MiniStat
-                  label="Active"
-                  value={selectedDepartment.activeStaff}
-                />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    🔍
+                  </span>
 
-                <MiniStat
-                  label="Inactive"
-                  value={selectedDepartment.inactiveStaff}
-                />
-
-                <MiniStat
-                  label="Complaints"
-                  value={selectedDepartment.complaints}
-                />
-
-              </div>
-
-            </div>
-
-            {/* ==================================================
-                STAFF SEARCH
-            ================================================== */}
-
-            <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
-
-              <div className="relative">
-
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                  🔍
-                </span>
-
-                <input
-                  type="text"
-                  value={staffSearch}
-                  onChange={(e) =>
-                    setStaffSearch(e.target.value)
-                  }
-                  placeholder="Search staff by name, ID, email, phone or role..."
-                  className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-
-              </div>
-
-            </div>
-
-            {/* ==================================================
-                STAFF LIST
-            ================================================== */}
-
-            <div className="flex-1 overflow-y-auto p-6">
-
-              {selectedDepartmentStaff.length === 0 ? (
-
-                <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center">
-
-                  <div className="text-4xl">
-                    👥
-                  </div>
-
-                  <h3 className="mt-3 font-semibold text-slate-800">
-                    No staff found
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {staffSearch
-                      ? "No staff members match your search."
-                      : "No staff members are currently assigned to this department."}
-                  </p>
+                  <input
+                    type="text"
+                    value={
+                      staffSearch
+                    }
+                    onChange={(e) =>
+                      setStaffSearch(
+                        e.target.value
+                      )
+                    }
+                    placeholder="Search staff by name, ID, email, phone or role..."
+                    className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
 
                 </div>
 
-              ) : (
+              </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200">
+              {/* ==================================================
+                  STAFF LIST
+              ================================================== */}
 
-                  {/* Desktop Table */}
+              <div className="flex-1 overflow-y-auto p-6">
 
-                  <div className="hidden overflow-x-auto md:block">
+                {loadingStaff ? (
 
-                    <table className="w-full">
+                  <div className="py-12 text-center">
 
-                      <thead className="bg-slate-50">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
 
-                        <tr>
+                    <p className="mt-3 text-sm text-slate-500">
+                      Loading staff...
+                    </p>
 
-                          <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Staff
-                          </th>
+                  </div>
 
-                          <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Staff ID
-                          </th>
+                ) : selectedDepartmentStaff.length ===
+                  0 ? (
 
-                          <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Contact
-                          </th>
+                  <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center">
 
-                          <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Role
-                          </th>
+                    <div className="text-4xl">
+                      👥
+                    </div>
 
-                          <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Status
-                          </th>
+                    <h3 className="mt-3 font-semibold text-slate-800">
+                      No staff found
+                    </h3>
 
-                        </tr>
+                    <p className="mt-1 text-sm text-slate-500">
 
-                      </thead>
+                      {staffSearch
+                        ? "No staff members match your search."
+                        : "No staff members are currently assigned to this department."}
 
-                      <tbody className="divide-y divide-slate-100">
+                    </p>
 
-                        {selectedDepartmentStaff.map(
-                          (member) => (
+                  </div>
 
-                            <tr
-                              key={
-                                member._id ||
-                                member.staffId ||
-                                member.email
-                              }
-                              className="transition hover:bg-slate-50"
-                            >
+                ) : (
 
-                              {/* Staff */}
+                  <div className="overflow-hidden rounded-xl border border-slate-200">
 
-                              <td className="px-5 py-4">
+                    {/* Desktop Table */}
 
-                                <div className="flex items-center gap-3">
+                    <div className="hidden overflow-x-auto md:block">
 
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600">
-                                    {String(
-                                      member.name ||
-                                        "S"
+                      <table className="w-full">
+
+                        <thead className="bg-slate-50">
+
+                          <tr>
+
+                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Staff
+                            </th>
+
+                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Staff ID
+                            </th>
+
+                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Contact
+                            </th>
+
+                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Role
+                            </th>
+
+                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Status
+                            </th>
+
+                          </tr>
+
+                        </thead>
+
+                        <tbody className="divide-y divide-slate-100">
+
+                          {selectedDepartmentStaff.map(
+                            (member) => (
+
+                              <tr
+                                key={
+                                  member._id ||
+                                  member.staffId ||
+                                  member.email
+                                }
+                                className="transition hover:bg-slate-50"
+                              >
+
+                                {/* Staff */}
+
+                                <td className="px-5 py-4">
+
+                                  <div className="flex items-center gap-3">
+
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600">
+
+                                      {String(
+                                        member.name ||
+                                          "S"
+                                      )
+                                        .charAt(
+                                          0
+                                        )
+                                        .toUpperCase()}
+
+                                    </div>
+
+                                    <div>
+
+                                      <p className="text-sm font-semibold text-slate-800">
+                                        {
+                                          member.name ||
+                                          "Unnamed Staff"
+                                        }
+                                      </p>
+
+                                      <p className="text-xs text-slate-500">
+                                        {
+                                          member.email ||
+                                          "No email"
+                                        }
+                                      </p>
+
+                                    </div>
+
+                                  </div>
+
+                                </td>
+
+                                {/* Staff ID */}
+
+                                <td className="px-5 py-4 text-sm text-slate-600">
+                                  {
+                                    member.staffId ||
+                                    "—"
+                                  }
+                                </td>
+
+                                {/* Contact */}
+
+                                <td className="px-5 py-4">
+
+                                  <p className="text-sm text-slate-700">
+                                    {
+                                      member.phone ||
+                                      "No phone"
+                                    }
+                                  </p>
+
+                                  {member.address && (
+
+                                    <p className="mt-1 max-w-[220px] truncate text-xs text-slate-400">
+                                      {
+                                        member.address
+                                      }
+                                    </p>
+
+                                  )}
+
+                                </td>
+
+                                {/* Role */}
+
+                                <td className="px-5 py-4 text-sm text-slate-600">
+                                  {
+                                    member.role ||
+                                    "Staff"
+                                  }
+                                </td>
+
+                                {/* Status */}
+
+                                <td className="px-5 py-4">
+
+                                  <span
+                                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                      member.status ===
+                                      "Active"
+                                        ? "bg-emerald-50 text-emerald-600"
+                                        : "bg-red-50 text-red-500"
+                                    }`}
+                                  >
+                                    {
+                                      member.status ||
+                                      "Unknown"
+                                    }
+                                  </span>
+
+                                </td>
+
+                              </tr>
+
+                            )
+                          )}
+
+                        </tbody>
+
+                      </table>
+
+                    </div>
+
+                    {/* Mobile Cards */}
+
+                    <div className="divide-y divide-slate-100 md:hidden">
+
+                      {selectedDepartmentStaff.map(
+                        (member) => (
+
+                          <div
+                            key={
+                              member._id ||
+                              member.staffId ||
+                              member.email
+                            }
+                            className="p-4"
+                          >
+
+                            <div className="flex items-start justify-between gap-3">
+
+                              <div className="flex items-center gap-3">
+
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600">
+
+                                  {String(
+                                    member.name ||
+                                      "S"
+                                  )
+                                    .charAt(
+                                      0
                                     )
-                                      .charAt(0)
-                                      .toUpperCase()}
-                                  </div>
-
-                                  <div>
-
-                                    <p className="text-sm font-semibold text-slate-800">
-                                      {member.name ||
-                                        "Unnamed Staff"}
-                                    </p>
-
-                                    <p className="text-xs text-slate-500">
-                                      {member.email ||
-                                        "No email"}
-                                    </p>
-
-                                  </div>
+                                    .toUpperCase()}
 
                                 </div>
 
-                              </td>
+                                <div>
 
-                              {/* Staff ID */}
-
-                              <td className="px-5 py-4 text-sm text-slate-600">
-                                {member.staffId ||
-                                  "—"}
-                              </td>
-
-                              {/* Contact */}
-
-                              <td className="px-5 py-4">
-
-                                <p className="text-sm text-slate-700">
-                                  {member.phone ||
-                                    "No phone"}
-                                </p>
-
-                                {member.address && (
-                                  <p className="mt-1 max-w-[220px] truncate text-xs text-slate-400">
-                                    {member.address}
+                                  <p className="text-sm font-semibold text-slate-800">
+                                    {
+                                      member.name ||
+                                      "Unnamed Staff"
+                                    }
                                   </p>
-                                )}
 
-                              </td>
+                                  <p className="text-xs text-slate-500">
+                                    {
+                                      member.staffId ||
+                                      "No Staff ID"
+                                    }
+                                  </p>
 
-                              {/* Role */}
-
-                              <td className="px-5 py-4 text-sm text-slate-600">
-                                {member.role || "Staff"}
-                              </td>
-
-                              {/* Status */}
-
-                              <td className="px-5 py-4">
-
-                                <span
-                                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                                    member.status ===
-                                    "Active"
-                                      ? "bg-emerald-50 text-emerald-600"
-                                      : "bg-red-50 text-red-500"
-                                  }`}
-                                >
-                                  {member.status ||
-                                    "Unknown"}
-                                </span>
-
-                              </td>
-
-                            </tr>
-
-                          )
-                        )}
-
-                      </tbody>
-
-                    </table>
-
-                  </div>
-
-                  {/* Mobile Cards */}
-
-                  <div className="divide-y divide-slate-100 md:hidden">
-
-                    {selectedDepartmentStaff.map(
-                      (member) => (
-
-                        <div
-                          key={
-                            member._id ||
-                            member.staffId ||
-                            member.email
-                          }
-                          className="p-4"
-                        >
-
-                          <div className="flex items-start justify-between gap-3">
-
-                            <div className="flex items-center gap-3">
-
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-600">
-                                {String(
-                                  member.name ||
-                                    "S"
-                                )
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </div>
-
-                              <div>
-
-                                <p className="text-sm font-semibold text-slate-800">
-                                  {member.name ||
-                                    "Unnamed Staff"}
-                                </p>
-
-                                <p className="text-xs text-slate-500">
-                                  {member.staffId ||
-                                    "No Staff ID"}
-                                </p>
+                                </div>
 
                               </div>
+
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                  member.status ===
+                                  "Active"
+                                    ? "bg-emerald-50 text-emerald-600"
+                                    : "bg-red-50 text-red-500"
+                                }`}
+                              >
+                                {
+                                  member.status ||
+                                  "Unknown"
+                                }
+                              </span>
 
                             </div>
 
-                            <span
-                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                member.status ===
-                                "Active"
-                                  ? "bg-emerald-50 text-emerald-600"
-                                  : "bg-red-50 text-red-500"
-                              }`}
-                            >
-                              {member.status ||
-                                "Unknown"}
-                            </span>
+                            <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-500">
 
-                          </div>
-
-                          <div className="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-500">
-
-                            <p>
-                              <span className="font-semibold text-slate-700">
-                                Email:
-                              </span>{" "}
-                              {member.email ||
-                                "No email"}
-                            </p>
-
-                            <p>
-                              <span className="font-semibold text-slate-700">
-                                Phone:
-                              </span>{" "}
-                              {member.phone ||
-                                "No phone"}
-                            </p>
-
-                            <p>
-                              <span className="font-semibold text-slate-700">
-                                Role:
-                              </span>{" "}
-                              {member.role ||
-                                "Staff"}
-                            </p>
-
-                            {member.address && (
                               <p>
+
                                 <span className="font-semibold text-slate-700">
-                                  Address:
+                                  Email:
                                 </span>{" "}
-                                {member.address}
+
+                                {
+                                  member.email ||
+                                  "No email"
+                                }
+
                               </p>
-                            )}
+
+                              <p>
+
+                                <span className="font-semibold text-slate-700">
+                                  Phone:
+                                </span>{" "}
+
+                                {
+                                  member.phone ||
+                                  "No phone"
+                                }
+
+                              </p>
+
+                              <p>
+
+                                <span className="font-semibold text-slate-700">
+                                  Role:
+                                </span>{" "}
+
+                                {
+                                  member.role ||
+                                  "Staff"
+                                }
+
+                              </p>
+
+                              {member.address && (
+
+                                <p>
+
+                                  <span className="font-semibold text-slate-700">
+                                    Address:
+                                  </span>{" "}
+
+                                  {
+                                    member.address
+                                  }
+
+                                </p>
+
+                              )}
+
+                            </div>
 
                           </div>
 
-                        </div>
+                        )
+                      )}
 
-                      )
-                    )}
+                    </div>
 
                   </div>
 
-                </div>
+                )}
 
-              )}
+              </div>
 
-            </div>
+              {/* ==================================================
+                  MODAL FOOTER
+              ================================================== */}
 
-            {/* ==================================================
-                MODAL FOOTER
-            ================================================== */}
+              <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
 
-            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
+                <p className="text-sm text-slate-500">
 
-              <p className="text-sm text-slate-500">
+                  Showing{" "}
 
-                Showing{" "}
-                <span className="font-semibold text-slate-800">
-                  {selectedDepartmentStaff.length}
-                </span>{" "}
-                staff member
-                {selectedDepartmentStaff.length !==
-                1
-                  ? "s"
-                  : ""}
+                  <span className="font-semibold text-slate-800">
+                    {
+                      selectedDepartmentStaff.length
+                    }
+                  </span>{" "}
 
-              </p>
+                  staff member
 
-              <button
-                type="button"
-                onClick={() =>
-                  setShowStaffModal(false)
-                }
-                className="rounded-lg bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
-              >
-                Close
-              </button>
+                  {selectedDepartmentStaff.length !==
+                  1
+                    ? "s"
+                    : ""}
+
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    closeStaffModal
+                  }
+                  className="rounded-lg bg-slate-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-900"
+                >
+                  Close
+                </button>
+
+              </div>
 
             </div>
 
           </div>
 
-        </div>
-      )}
+        )}
 
     </div>
   );
@@ -1569,6 +2062,7 @@ const StatCard = ({
   text,
 }) => {
   return (
+
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
 
       <div className="flex items-start justify-between gap-4">
@@ -1598,6 +2092,7 @@ const StatCard = ({
       </div>
 
     </div>
+
   );
 };
 
@@ -1605,8 +2100,12 @@ const StatCard = ({
 // MINI STAT
 // ======================================================
 
-const MiniStat = ({ label, value }) => {
+const MiniStat = ({
+  label,
+  value,
+}) => {
   return (
+
     <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
 
       <p className="text-xs text-slate-500">
@@ -1618,6 +2117,7 @@ const MiniStat = ({ label, value }) => {
       </p>
 
     </div>
+
   );
 };
 
@@ -1631,6 +2131,7 @@ const DepartmentCard = ({
   onEdit,
   onDelete,
 }) => {
+
   const {
     name,
     description,
@@ -1641,21 +2142,21 @@ const DepartmentCard = ({
     resolvedComplaints,
   } = department;
 
-  const isActive = status === "Active";
+  const isActive =
+    status === "Active";
 
   return (
+
     <div className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
 
-      {/* ==================================================
-          CARD BODY
-      ================================================== */}
+      {/* CARD BODY */}
 
       <div className="p-5">
 
         <div className="flex items-start justify-between gap-3">
 
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-2xl">
-            {icon}
+            {icon || "🏢"}
           </div>
 
           <span
@@ -1678,9 +2179,7 @@ const DepartmentCard = ({
           {description}
         </p>
 
-        {/* ==================================================
-            METRICS
-        ================================================== */}
+        {/* METRICS */}
 
         <div className="mt-5 grid grid-cols-3 divide-x divide-slate-200 border-t border-slate-100 pt-4">
 
@@ -1693,7 +2192,7 @@ const DepartmentCard = ({
               </span>
 
               <span className="text-sm font-bold text-slate-800">
-                {totalStaff}
+                {totalStaff || 0}
               </span>
 
             </div>
@@ -1713,7 +2212,7 @@ const DepartmentCard = ({
               </span>
 
               <span className="text-sm font-bold text-slate-800">
-                {complaints}
+                {complaints || 0}
               </span>
 
             </div>
@@ -1733,7 +2232,8 @@ const DepartmentCard = ({
               </span>
 
               <span className="text-sm font-bold text-slate-800">
-                {resolvedComplaints}
+                {resolvedComplaints ||
+                  0}
               </span>
 
             </div>
@@ -1748,39 +2248,55 @@ const DepartmentCard = ({
 
       </div>
 
-      {/* ==================================================
-          ACTIONS
-      ================================================== */}
+      {/* ACTIONS */}
 
       <div className="flex gap-2 border-t border-slate-100 bg-slate-50/70 p-4">
 
         <button
-          onClick={() => onViewStaff(department)}
+          type="button"
+          onClick={() =>
+            onViewStaff(
+              department
+            )
+          }
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-2 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-700"
         >
           <span>👥</span>
-          <span>View Staff</span>
+          <span>
+            View Staff
+          </span>
         </button>
 
         <button
-          onClick={() => onEdit(department)}
+          type="button"
+          onClick={() =>
+            onEdit(department)
+          }
           className="flex items-center justify-center gap-1 rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-50"
         >
           <span>✎</span>
-          <span>Edit</span>
+          <span>
+            Edit
+          </span>
         </button>
 
         <button
-          onClick={() => onDelete(department)}
+          type="button"
+          onClick={() =>
+            onDelete(department)
+          }
           className="flex items-center justify-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-2.5 text-xs font-semibold text-red-500 transition hover:bg-red-50"
         >
           <span>🗑</span>
-          <span>Delete</span>
+          <span>
+            Delete
+          </span>
         </button>
 
       </div>
 
     </div>
+
   );
 };
 

@@ -9,19 +9,10 @@ import StaffTable from "./StaffTable";
 import AddStaffModal from "./AddStaffModel";
 
 const API_URL = "http://localhost:3000/api/staff";
-const SERVER_URL = "http://localhost:3000";
+const DEPARTMENT_API_URL =
+  "http://localhost:3000/api/departments";
 
-const departments = [
-  "Roads & Infrastructure",
-  "Electrical & Street Lighting",
-  "Water Supply",
-  "Sanitation",
-  "Drainage & Sewerage",
-  "Parks & Horticulture",
-  "Traffic Management",
-  "Building & Construction",
-  "General Administration",
-];
+const SERVER_URL = "http://localhost:3000";
 
 // ==========================================
 // NORMALIZE STAFF DATA
@@ -33,11 +24,6 @@ const normalizeStaff = (member) => ({
 
   staffId: member.staffId,
 
-  /*
-    Complaint count can come from backend
-    as complaints / assignedComplaints /
-    complaintCount.
-  */
   complaints: Number(
     member.complaints ??
       member.assignedComplaints ??
@@ -56,10 +42,18 @@ const normalizeStaff = (member) => ({
 // STAFF MANAGEMENT
 // ==========================================
 const StaffManagement = () => {
+  // ==========================================
+  // STATES
+  // ==========================================
+
   const [showAddStaff, setShowAddStaff] =
     useState(false);
 
   const [staff, setStaff] = useState([]);
+
+  // Departments now come from backend
+  const [departments, setDepartments] =
+    useState([]);
 
   const [search, setSearch] =
     useState("");
@@ -73,7 +67,13 @@ const StaffManagement = () => {
   const [loading, setLoading] =
     useState(true);
 
+  const [departmentLoading, setDepartmentLoading] =
+    useState(true);
+
   const [error, setError] =
+    useState("");
+
+  const [departmentError, setDepartmentError] =
     useState("");
 
   // ==========================================
@@ -186,11 +186,89 @@ const StaffManagement = () => {
   );
 
   // ==========================================
-  // LOAD STAFF
+  // FETCH DEPARTMENTS
+  // ==========================================
+  const fetchDepartments =
+    useCallback(async () => {
+      try {
+        setDepartmentLoading(true);
+        setDepartmentError("");
+
+        const data =
+          await apiRequest(
+            DEPARTMENT_API_URL
+          );
+
+        /*
+          Backend may return:
+
+          [
+            { _id, name }
+          ]
+
+          OR
+
+          {
+            departments: [
+              { _id, name }
+            ]
+          }
+        */
+
+        const departmentList =
+          Array.isArray(data)
+            ? data
+            : Array.isArray(
+                data.departments
+              )
+            ? data.departments
+            : [];
+
+        setDepartments(
+          departmentList
+            .map((department) => {
+              if (
+                typeof department ===
+                "string"
+              ) {
+                return department;
+              }
+
+              return (
+                department.name ||
+                department.departmentName ||
+                ""
+              );
+            })
+            .filter(Boolean)
+        );
+      } catch (err) {
+        console.error(
+          "Fetch departments error:",
+          err
+        );
+
+        setDepartmentError(
+          err.message ||
+            "Unable to fetch departments."
+        );
+
+        setDepartments([]);
+      } finally {
+        setDepartmentLoading(false);
+      }
+    }, []);
+
+  // ==========================================
+  // LOAD STAFF + DEPARTMENTS
   // ==========================================
   useEffect(() => {
     fetchStaff();
-  }, [fetchStaff]);
+    fetchDepartments();
+  }, [
+    fetchStaff,
+    fetchDepartments,
+  ]);
 
   // ==========================================
   // ADD STAFF
@@ -385,14 +463,6 @@ const StaffManagement = () => {
   const handleViewAssignedComplaints = (
     member
   ) => {
-    /*
-      This gives StaffTable a proper action
-      for assigned complaints.
-
-      Later you can replace this with:
-      navigate(`/admin/complaints?staff=${member._id}`)
-    */
-
     if (!member) return;
 
     const count = Number(
@@ -551,6 +621,27 @@ const StaffManagement = () => {
       )}
 
       {/* ====================================== */}
+      {/* DEPARTMENT ERROR */}
+      {/* ====================================== */}
+
+      {departmentError && (
+        <div className="mt-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700">
+          <p>
+            Unable to load departments:
+            {" "}
+            {departmentError}
+          </p>
+
+          <button
+            onClick={fetchDepartments}
+            className="mt-2 font-semibold underline"
+          >
+            Retry loading departments
+          </button>
+        </div>
+      )}
+
+      {/* ====================================== */}
       {/* STAT CARDS */}
       {/* ====================================== */}
 
@@ -593,6 +684,8 @@ const StaffManagement = () => {
 
         <div className="flex flex-col gap-4 lg:flex-row">
 
+          {/* SEARCH */}
+
           <input
             type="text"
             value={search}
@@ -605,6 +698,10 @@ const StaffManagement = () => {
             className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
 
+          {/* ================================== */}
+          {/* DYNAMIC DEPARTMENT FILTER */}
+          {/* ================================== */}
+
           <select
             value={departmentFilter}
             onChange={(event) =>
@@ -612,11 +709,14 @@ const StaffManagement = () => {
                 event.target.value
               )
             }
-            className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 outline-none focus:border-blue-500"
+            disabled={departmentLoading}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-600 outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-100"
           >
 
             <option value="">
-              All Departments
+              {departmentLoading
+                ? "Loading Departments..."
+                : "All Departments"}
             </option>
 
             {departments.map(
@@ -631,6 +731,8 @@ const StaffManagement = () => {
             )}
 
           </select>
+
+          {/* STATUS */}
 
           <select
             value={statusFilter}
