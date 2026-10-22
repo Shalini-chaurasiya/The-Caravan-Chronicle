@@ -1,478 +1,582 @@
-import Complaint from "../models/Complaint.js";
 
+import mongoose from "mongoose";
+import Complaint from "../models/Complaint.js";
+import User from "../models/User.js";
+import Staff from "../models/Staff.js";
 
 // ==========================================
-// CREATE COMPLAINT
+// HELPER: GET LOGGED-IN USER ID
+// ==========================================
+
+const getUserId = (req) =>
+  req.user?.id || req.user?._id || req.user?.userId;
+
+// ==========================================
+// HELPER: POPULATE COMPLAINT DETAILS
+// ==========================================
+
+const populateComplaint = (query) =>
+  query
+    .populate("user", "name email contact address profileImage")
+    .populate(
+      "assignedStaff",
+      "staffId name email phone department role experience status photo"
+    );
+
+// ==========================================
+// CREATE COMPLAINT - CITIZEN
 // ==========================================
 
 export const createComplaint = async (req, res) => {
   try {
-    console.log("");
-    console.log("==========================================");
-    console.log("       CREATE COMPLAINT REQUEST");
-    console.log("==========================================");
+    const userId = getUserId(req);
+    const { complaintType, location, latitude, longitude, description } =
+      req.body;
 
-    // ==========================================
-    // Logged-in user
-    // ==========================================
-
-    console.log("Logged-in User:", req.user);
-
-    // ==========================================
-    // Get data from request
-    // ==========================================
-
-    const {
-      complaintType,
-      location,
-      latitude,
-      longitude,
-      description,
-    } = req.body;
-
-    console.log("Complaint Type:", complaintType);
-    console.log("Location:", location);
-    console.log("Latitude:", latitude);
-    console.log("Longitude:", longitude);
-    console.log("Description:", description);
-
-    // ==========================================
-    // Validate complaint type
-    // ==========================================
-
-    if (!complaintType || !complaintType.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Complaint type is required",
-      });
-    }
-
-    // ==========================================
-    // Validate location
-    // ==========================================
-
-    if (!location || !location.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Location is required",
-      });
-    }
-
-    // ==========================================
-    // Validate description
-    // ==========================================
-
-    if (!description || !description.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Description is required",
-      });
-    }
-
-    // ==========================================
-    // Get user ID from JWT
-    // ==========================================
-
-    const userId =
-      req.user?.id ||
-      req.user?._id ||
-      req.user?.userId;
-
-    if (!userId) {
+    if (!userId || !mongoose.isValidObjectId(userId)) {
       return res.status(401).json({
         success: false,
-        message:
-          "User information not found. Please login again.",
+        message: "Please log in again.",
       });
     }
 
-    console.log("Complaint User ID:", userId);
+    // Verify the logged-in user exists.
+    const citizen = await User.findById(userId).select(
+      "_id name email contact"
+    );
 
-    // ==========================================
-    // Default photo data
-    // ==========================================
+    if (!citizen) {
+      return res.status(401).json({
+        success: false,
+        message: "User account not found. Please log in again.",
+      });
+    }
 
-    let photoData = {
-      url: null,
-      publicId: null,
+    if (!complaintType?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Complaint type is required.",
+      });
+    }
+
+    if (!location?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Location is required.",
+      });
+    }
+
+    if (!description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required.",
+      });
+    }
+
+    const parseCoordinate = (value) => {
+      if (value === undefined || value === null || value === "") {
+        return null;
+      }
+
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
     };
 
-    // ==========================================
-    // Check uploaded image
-    // ==========================================
+    const latitudeValue = parseCoordinate(latitude);
+    const longitudeValue = parseCoordinate(longitude);
+
+    if (
+      (latitudeValue !== null &&
+        (latitudeValue < -90 || latitudeValue > 90)) ||
+      (longitudeValue !== null &&
+        (longitudeValue < -180 || longitudeValue > 180))
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid latitude or longitude.",
+      });
+    }
+
+    let photoData = { url: null, publicId: null };
 
     if (req.file) {
-      console.log("");
-      console.log("========== FILE RECEIVED ==========");
-
-      console.log(
-        "Original name:",
-        req.file.originalname
-      );
-
-      console.log(
-        "MIME type:",
-        req.file.mimetype
-      );
-
-      console.log(
-        "File size:",
-        req.file.size
-      );
-
-      console.log(
-        "Saved filename:",
-        req.file.filename
-      );
-
-      console.log(
-        "Saved path:",
-        req.file.path
-      );
-
-      console.log("===================================");
-      console.log("");
-
-      photoData = {
-        url: `/uploads/complaints/${req.file.filename}`,
-        publicId: null,
-      };
-    } else {
-      console.log("No photo uploaded.");
+      photoData.url = `/uploads/complaints/${req.file.filename}`;
     }
-
-    // ==========================================
-    // Convert latitude
-    // ==========================================
-
-    let latitudeValue = null;
-
-    if (
-      latitude !== undefined &&
-      latitude !== null &&
-      latitude !== ""
-    ) {
-      latitudeValue = Number(latitude);
-
-      if (Number.isNaN(latitudeValue)) {
-        latitudeValue = null;
-      }
-    }
-
-    // ==========================================
-    // Convert longitude
-    // ==========================================
-
-    let longitudeValue = null;
-
-    if (
-      longitude !== undefined &&
-      longitude !== null &&
-      longitude !== ""
-    ) {
-      longitudeValue = Number(longitude);
-
-      if (Number.isNaN(longitudeValue)) {
-        longitudeValue = null;
-      }
-    }
-
-    // ==========================================
-    // Create complaint
-    // ==========================================
 
     const complaint = await Complaint.create({
-      // Connect complaint with logged-in user
-      user: userId,
-
+      user: citizen._id,
       complaintType: complaintType.trim(),
-
       location: location.trim(),
-
       latitude: latitudeValue,
-
       longitude: longitudeValue,
-
       description: description.trim(),
-
       photo: photoData,
-
       status: "Pending",
     });
 
-    // ==========================================
-    // Success logs
-    // ==========================================
-
-    console.log("");
-    console.log("==========================================");
-    console.log("       COMPLAINT CREATED SUCCESSFULLY");
-    console.log("==========================================");
-
-    console.log(
-      "Complaint ID:",
-      complaint._id
+    const populatedComplaint = await populateComplaint(
+      Complaint.findById(complaint._id)
     );
-
-    console.log(
-      "User ID:",
-      complaint.user
-    );
-
-    console.log(
-      "Photo URL:",
-      photoData.url
-    );
-
-    console.log("==========================================");
-    console.log("");
-
-    // ==========================================
-    // Response
-    // ==========================================
 
     return res.status(201).json({
       success: true,
-
-      message:
-        "Complaint submitted successfully",
-
-      complaint,
+      message: "Complaint submitted successfully.",
+      complaint: populatedComplaint,
     });
   } catch (error) {
-    console.error("");
-    console.error("==========================================");
-    console.error("       CREATE COMPLAINT ERROR");
-    console.error("==========================================");
-
-    console.error(
-      "Message:",
-      error?.message
-    );
-
-    console.error(
-      "Full Error:",
-      error
-    );
-
-    console.error("==========================================");
-    console.error("");
+    console.error("Create complaint error:", error);
 
     return res.status(500).json({
       success: false,
-
-      message:
-        "Failed to submit complaint",
-
-      error:
-        error?.message ||
-        "Unknown server error",
+      message: "Failed to submit complaint.",
+      error: error.message,
     });
   }
 };
 
-
 // ==========================================
-// GET MY COMPLAINTS
+// GET MY COMPLAINTS - CITIZEN
 // ==========================================
 
-export const getMyComplaints = async (
-  req,
-  res
-) => {
+export const getMyComplaints = async (req, res) => {
   try {
-    console.log("");
-    console.log("==========================================");
-    console.log("       GET MY COMPLAINTS");
-    console.log("==========================================");
+    const userId = getUserId(req);
 
-    // ==========================================
-    // Get logged-in user's ID
-    // ==========================================
-
-    const userId =
-      req.user?.id ||
-      req.user?._id ||
-      req.user?.userId;
-
-    if (!userId) {
+    if (!userId || !mongoose.isValidObjectId(userId)) {
       return res.status(401).json({
         success: false,
-
-        message:
-          "User information not found. Please login again.",
+        message: "Please log in again.",
       });
     }
 
-    console.log("User ID:", userId);
-
-    // ==========================================
-    // Find complaints belonging to user
-    // ==========================================
-
-    const complaints =
-      await Complaint.find({
-        user: userId,
-      }).sort({
-        createdAt: -1,
-      });
-
-    console.log(
-      "Number of complaints:",
-      complaints.length
-    );
-
-    // ==========================================
-    // Response
-    // ==========================================
+    const complaints = await populateComplaint(
+      Complaint.find({ user: userId })
+    ).sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
-
       count: complaints.length,
-
       complaints,
     });
   } catch (error) {
-    console.error(
-      "Get My Complaints Error:",
-      error
-    );
+    console.error("Get my complaints error:", error);
 
     return res.status(500).json({
       success: false,
-
-      message:
-        "Failed to fetch complaints",
-
-      error:
-        error?.message ||
-        "Unknown server error",
+      message: "Failed to fetch your complaints.",
+      error: error.message,
     });
   }
 };
 
-
 // ==========================================
-// GET SINGLE COMPLAINT
+// GET SINGLE COMPLAINT - CITIZEN
 // ==========================================
 
-export const getComplaintById = async (
-  req,
-  res
-) => {
+export const getComplaintById = async (req, res) => {
   try {
-    console.log("");
-    console.log("==========================================");
-    console.log("       GET COMPLAINT DETAILS");
-    console.log("==========================================");
+    const userId = getUserId(req);
+    const complaintId = req.params.id;
 
-    // ==========================================
-    // Get logged-in user's ID
-    // ==========================================
-
-    const userId =
-      req.user?.id ||
-      req.user?._id ||
-      req.user?.userId;
-
-    if (!userId) {
+    if (!userId || !mongoose.isValidObjectId(userId)) {
       return res.status(401).json({
         success: false,
-
-        message:
-          "User information not found. Please login again.",
+        message: "Please log in again.",
       });
     }
 
-    console.log("User ID:", userId);
+    if (!mongoose.isValidObjectId(complaintId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
 
-    console.log(
-      "Complaint ID:",
-      req.params.id
-    );
-
-    // ==========================================
-    // Find complaint
-    //
-    // IMPORTANT:
-    // user: userId ensures that a citizen
-    // can only see their own complaint.
-    //
-    // populate("user") gets actual user
-    // information from User collection.
-    // ==========================================
-
-    const complaint =
-      await Complaint.findOne({
-        _id: req.params.id,
-
+    const complaint = await populateComplaint(
+      Complaint.findOne({
+        _id: complaintId,
         user: userId,
-      }).populate(
-        "user",
-        "name email contact address profileImage"
-      );
-
-    // ==========================================
-    // Complaint not found
-    // ==========================================
+      })
+    );
 
     if (!complaint) {
       return res.status(404).json({
         success: false,
-
-        message:
-          "Complaint not found",
+        message: "Complaint not found.",
       });
     }
 
-    console.log(
-      "Complaint found:",
-      complaint._id
-    );
-
-    console.log(
-      "Complaint user:",
-      complaint.user
-    );
-
-    // ==========================================
-    // Response
-    // ==========================================
-
     return res.status(200).json({
       success: true,
-
       complaint,
     });
   } catch (error) {
-    console.error("");
-    console.error("==========================================");
-    console.error("       GET COMPLAINT DETAILS ERROR");
-    console.error("==========================================");
-
-    console.error(
-      "Message:",
-      error?.message
-    );
-
-    console.error(
-      "Full Error:",
-      error
-    );
-
-    console.error("==========================================");
-    console.error("");
+    console.error("Get complaint by ID error:", error);
 
     return res.status(500).json({
       success: false,
+      message: "Failed to fetch complaint.",
+      error: error.message,
+    });
+  }
+};
 
-      message:
-        "Failed to fetch complaint",
+// ==========================================
+// GET ALL COMPLAINTS - ADMIN
+// ==========================================
 
-      error:
-        error?.message ||
-        "Unknown server error",
+export const getAllComplaints = async (req, res) => {
+  try {
+    const complaints = await populateComplaint(
+      Complaint.find()
+    ).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: complaints.length,
+      complaints,
+    });
+  } catch (error) {
+    console.error("Get all complaints error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch all complaints.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// GET SINGLE COMPLAINT - ADMIN
+// ==========================================
+
+export const getAdminComplaintById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    const complaint = await populateComplaint(
+      Complaint.findById(id)
+    );
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      complaint,
+    });
+  } catch (error) {
+    console.error("Get admin complaint error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch complaint details.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// GET STAFF AVAILABLE FOR A COMPLAINT
+// ==========================================
+
+export const getStaffForComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    const filter = { status: "Active" };
+
+    if (
+      complaint.department &&
+      complaint.department !== "General Administration"
+    ) {
+      filter.department = complaint.department;
+    }
+
+    const staff = await Staff.find(filter)
+      .select(
+        "staffId name email phone department role experience status photo"
+      )
+      .sort({ name: 1 });
+
+    return res.status(200).json({
+      success: true,
+      count: staff.length,
+      staff,
+    });
+  } catch (error) {
+    console.error("Get staff for complaint error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch available staff.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// ASSIGN STAFF - ADMIN
+// ==========================================
+
+export const assignStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { staffId } = req.body;
+
+    if (
+      !mongoose.isValidObjectId(id) ||
+      !mongoose.isValidObjectId(staffId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID or staff ID.",
+      });
+    }
+
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    const staff = await Staff.findById(staffId);
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    if (staff.status !== "Active") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot assign an inactive staff member.",
+      });
+    }
+
+    if (
+      complaint.department &&
+      complaint.department !== "General Administration" &&
+      staff.department !== complaint.department
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: `Staff must belong to ${complaint.department}.`,
+      });
+    }
+
+    complaint.assignedStaff = staff._id;
+
+    if (complaint.status === "Pending") {
+      complaint.status = "In Progress";
+    }
+
+    await complaint.save();
+
+    const updatedComplaint = await populateComplaint(
+      Complaint.findById(complaint._id)
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff assigned successfully.",
+      complaint: updatedComplaint,
+    });
+  } catch (error) {
+    console.error("Assign staff error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to assign staff.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// REMOVE ASSIGNED STAFF - ADMIN
+// ==========================================
+
+export const removeStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    const complaint = await Complaint.findById(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    complaint.assignedStaff = null;
+
+    if (complaint.status === "In Progress") {
+      complaint.status = "Pending";
+    }
+
+    await complaint.save();
+
+    const updatedComplaint = await populateComplaint(
+      Complaint.findById(complaint._id)
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff removed successfully.",
+      complaint: updatedComplaint,
+    });
+  } catch (error) {
+    console.error("Remove staff error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove staff.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// UPDATE COMPLAINT STATUS - ADMIN
+// ==========================================
+
+export const updateComplaintStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "Pending",
+      "In Progress",
+      "Resolved",
+      "Rejected",
+    ];
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint status.",
+        allowedStatuses,
+      });
+    }
+
+    const complaint = await Complaint.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    const updatedComplaint = await populateComplaint(
+      Complaint.findById(complaint._id)
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Complaint status updated successfully.",
+      complaint: updatedComplaint,
+    });
+  } catch (error) {
+    console.error("Update complaint status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update complaint status.",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// DELETE COMPLAINT - ADMIN
+// ==========================================
+
+export const deleteComplaint = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    const complaint = await Complaint.findByIdAndDelete(id);
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Complaint deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete complaint error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete complaint.",
+      error: error.message,
     });
   }
 };

@@ -1,7 +1,7 @@
-
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import Staff from "../models/Staff.js";
+import Complaint from "../models/Complaint.js";
 
 // ============================================
 // CREATE STAFF
@@ -69,36 +69,49 @@ const createStaff = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const staff = await Staff.create({
-      staffId: `STF-${randomBytes(4).toString("hex").toUpperCase()}`,
+      staffId: `STF-${randomBytes(4)
+        .toString("hex")
+        .toUpperCase()}`,
+
       name: name.trim(),
       email: normalizedEmail,
       phone: phone.trim(),
+
       gender,
       dob: dob || undefined,
+
       department,
       role: role || "Staff",
+
       experience:
         experience === "" || experience == null
           ? 0
           : Number(experience),
+
       address,
       city,
       state,
       pincode,
+
       photo: req.file
         ? `/uploads/staff/${req.file.filename}`
         : "",
+
       password: hashedPassword,
       status: "Active",
     });
 
     const staffResponse = staff.toObject();
+
     delete staffResponse.password;
 
     return res.status(201).json({
       success: true,
       message: "Staff added successfully.",
-      staff: staffResponse,
+      staff: {
+        ...staffResponse,
+        complaints: 0,
+      },
     });
   } catch (error) {
     console.error("Create staff error:", error);
@@ -127,6 +140,9 @@ const createStaff = async (req, res) => {
 // ============================================
 // GET ALL STAFF
 // GET /api/staff
+//
+// IMPORTANT:
+// Counts complaints assigned to each staff member.
 // ============================================
 const getAllStaff = async (req, res) => {
   try {
@@ -135,10 +151,44 @@ const getAllStaff = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Get complaint counts for every staff member
+    const complaintCounts = await Complaint.aggregate([
+      {
+        $match: {
+          assignedStaff: {
+            $ne: null,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$assignedStaff",
+          complaints: {
+            $sum: 1,
+          },
+        },
+      },
+    ]);
+
+    // Convert counts into an easy lookup object
+    const countMap = {};
+
+    complaintCounts.forEach((item) => {
+      countMap[String(item._id)] = item.complaints;
+    });
+
+    // Add complaint count to every staff member
+    const staffWithComplaints = staff.map((member) => ({
+      ...member,
+
+      complaints:
+        countMap[String(member._id)] || 0,
+    }));
+
     return res.status(200).json({
       success: true,
-      count: staff.length,
-      staff,
+      count: staffWithComplaints.length,
+      staff: staffWithComplaints,
     });
   } catch (error) {
     console.error("Get staff error:", error);
@@ -167,9 +217,17 @@ const getStaffById = async (req, res) => {
       });
     }
 
+    // Count complaints assigned to this staff member
+    const complaints = await Complaint.countDocuments({
+      assignedStaff: staff._id,
+    });
+
     return res.status(200).json({
       success: true,
-      staff,
+      staff: {
+        ...staff,
+        complaints,
+      },
     });
   } catch (error) {
     if (error.name === "CastError") {
@@ -217,6 +275,7 @@ const updateStaff = async (req, res) => {
       }
     }
 
+    // NAME
     if (updates.name !== undefined) {
       if (!updates.name.trim()) {
         return res.status(400).json({
@@ -228,6 +287,7 @@ const updateStaff = async (req, res) => {
       updates.name = updates.name.trim();
     }
 
+    // EMAIL
     if (updates.email !== undefined) {
       if (!updates.email.trim()) {
         return res.status(400).json({
@@ -239,10 +299,12 @@ const updateStaff = async (req, res) => {
       updates.email = updates.email.trim().toLowerCase();
     }
 
+    // PHONE
     if (updates.phone !== undefined) {
       updates.phone = updates.phone.trim();
     }
 
+    // EXPERIENCE
     if (updates.experience !== undefined) {
       updates.experience = Number(updates.experience);
 
@@ -257,14 +319,16 @@ const updateStaff = async (req, res) => {
       }
     }
 
-    // Only replace the photo if a new one was uploaded.
+    // PHOTO
     if (req.file) {
       updates.photo = `/uploads/staff/${req.file.filename}`;
     }
 
     const staff = await Staff.findByIdAndUpdate(
       req.params.id,
-      { $set: updates },
+      {
+        $set: updates,
+      },
       {
         new: true,
         runValidators: true,
@@ -278,10 +342,18 @@ const updateStaff = async (req, res) => {
       });
     }
 
+    // Count complaints after update
+    const complaints = await Complaint.countDocuments({
+      assignedStaff: staff._id,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Staff details updated successfully.",
-      staff,
+      staff: {
+        ...staff.toObject(),
+        complaints,
+      },
     });
   } catch (error) {
     console.error("Update staff error:", error);
@@ -299,7 +371,9 @@ const updateStaff = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: error.message || "Invalid staff ID or data.",
+        message:
+          error.message ||
+          "Invalid staff ID or data.",
       });
     }
 
@@ -327,7 +401,11 @@ const toggleStaffStatus = async (req, res) => {
 
     const staff = await Staff.findByIdAndUpdate(
       req.params.id,
-      { $set: { status } },
+      {
+        $set: {
+          status,
+        },
+      },
       {
         new: true,
         runValidators: true,
@@ -341,10 +419,18 @@ const toggleStaffStatus = async (req, res) => {
       });
     }
 
+    // Count complaints assigned to this staff member
+    const complaints = await Complaint.countDocuments({
+      assignedStaff: staff._id,
+    });
+
     return res.status(200).json({
       success: true,
       message: `Staff member is now ${status.toLowerCase()}.`,
-      staff,
+      staff: {
+        ...staff.toObject(),
+        complaints,
+      },
     });
   } catch (error) {
     console.error("Toggle staff status error:", error);
@@ -369,7 +455,9 @@ const toggleStaffStatus = async (req, res) => {
 // ============================================
 const deleteStaff = async (req, res) => {
   try {
-    const staff = await Staff.findByIdAndDelete(req.params.id);
+    const staff = await Staff.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!staff) {
       return res.status(404).json({
@@ -400,6 +488,9 @@ const deleteStaff = async (req, res) => {
   }
 };
 
+// ============================================
+// EXPORT
+// ============================================
 export {
   createStaff,
   getAllStaff,
