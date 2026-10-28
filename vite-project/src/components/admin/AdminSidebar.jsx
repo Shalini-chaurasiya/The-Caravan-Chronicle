@@ -8,7 +8,7 @@ const menuItems = [
   { name: "Departments", path: "/admin/departments", icon: "▦" },
   { name: "SLA & Escalation", path: "/admin/sla", icon: "◷" },
   { name: "Reports & Analytics", path: "/admin/reports", icon: "▥" },
-  { name: "Public Portal", path: "/admin/public-portal", icon: "◎" },
+  
   { name: "Profile", path: "/admin/profile", icon: "♙" },
 ];
 
