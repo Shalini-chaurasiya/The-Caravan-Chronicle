@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   UserRound,
   Mail,
@@ -18,43 +18,83 @@ import {
   Save,
   CheckCircle2,
   Activity,
+  LoaderCircle,
 } from "lucide-react";
+
+// VITE_API_URL may be a server origin or an API base URL.
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api")
+  ? API_BASE_URL
+  : `${API_BASE_URL}/api`;
 
 const initialProfile = {
   name: "Admin",
-  email: "admin@municipal.gov.in",
+  email: "",
   phone: "",
   gender: "",
   role: "Administrator",
   department: "General Administration",
   status: "Active",
   permissions: "Full Access",
-  lastLogin: "Not available",
-  accountCreated: "Not available",
+  lastLogin: null,
+  accountCreated: null,
 };
 
 const personalFields = [
-  {
-    label: "Full Name",
-    key: "name",
-    icon: UserRound,
-  },
-  {
-    label: "Email Address",
-    key: "email",
-    icon: Mail,
-  },
-  {
-    label: "Phone Number",
-    key: "phone",
-    icon: Phone,
-  },
-  {
-    label: "Gender",
-    key: "gender",
-    icon: VenusAndMars,
-  },
+  { label: "Full Name", key: "name", icon: UserRound },
+  { label: "Email Address", key: "email", icon: Mail },
+  { label: "Phone Number", key: "phone", icon: Phone },
+  { label: "Gender", key: "gender", icon: VenusAndMars },
 ];
+
+const getToken = () =>
+  localStorage.getItem("adminToken") ||
+  localStorage.getItem("admin_token") ||
+  localStorage.getItem("token");
+
+async function apiRequest(endpoint, options = {}) {
+  const token = getToken();
+
+  if (!token) {
+    throw new Error(
+      "Admin token not found. Please log in to your admin account."
+    );
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data.success === false) {
+    throw new Error(
+      data.message || `Request failed (${response.status})`
+    );
+  }
+
+  return data;
+}
+
+function formatDate(value) {
+  if (!value) return "Not available";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Not available";
+
+  return date.toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 function InfoCard({ icon: Icon, title, subtitle, children }) {
   return (
@@ -65,12 +105,8 @@ function InfoCard({ icon: Icon, title, subtitle, children }) {
         </div>
 
         <div className="min-w-0">
-          <h2 className="font-semibold text-slate-900">
-            {title}
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            {subtitle}
-          </p>
+          <h2 className="font-semibold text-slate-900">{title}</h2>
+          <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
         </div>
       </div>
 
@@ -92,18 +128,13 @@ function DetailRow({
         last ? "" : "border-b border-slate-100"
       }`}
     >
-      <Icon
-        size={19}
-        className="mt-0.5 shrink-0 text-slate-500"
-      />
+      <Icon size={19} className="mt-0.5 shrink-0 text-slate-500" />
 
       <div className="grid min-w-0 flex-1 grid-cols-1 gap-1 sm:grid-cols-[minmax(100px,0.8fr)_minmax(0,1.2fr)] sm:items-center sm:gap-3">
-        <span className="text-sm text-slate-500">
-          {label}
-        </span>
+        <span className="text-sm text-slate-500">{label}</span>
 
         <div className="min-w-0 break-words text-sm font-medium text-slate-800">
-          {children || value || "Not provided"}
+          {children ?? value ?? "Not provided"}
         </div>
       </div>
     </div>
@@ -125,9 +156,7 @@ function Modal({ title, onClose, children }) {
         className="my-auto w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
       >
         <div className="mb-6 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-slate-900">
-            {title}
-          </h2>
+          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
 
           <button
             type="button"
@@ -152,6 +181,8 @@ function FormField({
   type = "text",
   placeholder = "",
   required = false,
+  minLength,
+  autoComplete,
 }) {
   return (
     <label className="block">
@@ -165,6 +196,8 @@ function FormField({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        minLength={minLength}
+        autoComplete={autoComplete}
         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
       />
     </label>
@@ -173,66 +206,211 @@ function FormField({
 
 export default function Profile() {
   const [profile, setProfile] = useState(initialProfile);
+  const [editForm, setEditForm] = useState(initialProfile);
+
   const [editOpen, setEditOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
+
+  const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
   const [passwords, setPasswords] = useState({
     current: "",
     next: "",
     confirm: "",
   });
 
-  const updateField = (key, value) => {
-    setProfile((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+  const showMessage = (text, type = "success") => {
+    setMessage(text);
+    setMessageType(type);
   };
 
-  const saveProfile = (e) => {
-    e.preventDefault();
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
 
-    // UI only: connect your profile update API here.
-    setEditOpen(false);
-    setMessage("Profile changes updated in this session.");
+    try {
+      const data = await apiRequest("/admin/profile");
+
+      if (!data.admin) {
+        throw new Error("Profile information was not returned.");
+      }
+
+      const admin = data.admin;
+
+      const mappedProfile = {
+        ...initialProfile,
+        ...admin,
+        role:
+          admin.role === "admin"
+            ? "Administrator"
+            : admin.role || initialProfile.role,
+        lastLogin: admin.lastLogin || null,
+        accountCreated:
+          admin.accountCreated || admin.createdAt || null,
+      };
+
+      setProfile(mappedProfile);
+      setEditForm(mappedProfile);
+    } catch (error) {
+      showMessage(error.message || "Unable to load profile.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const openEdit = () => {
+    setEditForm({ ...profile });
+    setMessage("");
+    setEditOpen(true);
   };
 
-  const changePassword = (e) => {
+  const saveProfile = async (e) => {
     e.preventDefault();
+    setSavingProfile(true);
+    setMessage("");
+
+    try {
+      const payload = {
+        name: editForm.name.trim(),
+        email: editForm.email.trim(),
+        phone: editForm.phone.trim(),
+        gender: editForm.gender,
+      };
+
+      const data = await apiRequest("/admin/profile", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+
+      const updatedAdmin = data.admin || payload;
+
+      setProfile((prev) => ({
+        ...prev,
+        ...updatedAdmin,
+        role:
+          updatedAdmin.role === "admin"
+            ? "Administrator"
+            : updatedAdmin.role || prev.role,
+      }));
+
+      setEditOpen(false);
+      showMessage(data.message || "Profile updated successfully.");
+
+      // The current JWT contains the old email. If the email changed,
+      // your backend must refresh the token or require a fresh login.
+      if (
+        payload.email.toLowerCase() !==
+        profile.email.toLowerCase()
+      ) {
+        showMessage(
+          "Email updated. Please log in again if your current session stops working.",
+          "success"
+        );
+      }
+    } catch (error) {
+      showMessage(error.message || "Failed to update profile.", "error");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    setMessage("");
 
     if (passwords.next.length < 8) {
-      setMessage("New password must contain at least 8 characters.");
+      showMessage(
+        "New password must contain at least 8 characters.",
+        "error"
+      );
       return;
     }
 
     if (passwords.next !== passwords.confirm) {
-      setMessage("New password and confirmation do not match.");
+      showMessage(
+        "New password and confirmation do not match.",
+        "error"
+      );
       return;
     }
 
-    // UI only: submit to your authenticated password-change API.
+    if (passwords.current === passwords.next) {
+      showMessage(
+        "Choose a password different from your current password.",
+        "error"
+      );
+      return;
+    }
+
+    setSavingPassword(true);
+
+    try {
+      const data = await apiRequest("/admin/profile/password", {
+        method: "PUT",
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.next,
+          confirmPassword: passwords.confirm,
+        }),
+      });
+
+      setPasswordOpen(false);
+      setPasswords({
+        current: "",
+        next: "",
+        confirm: "",
+      });
+
+      showMessage(
+        data.message ||
+          "Password changed successfully. Use your new password next time you log in."
+      );
+    } catch (error) {
+      showMessage(error.message || "Failed to change password.", "error");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditForm({ ...profile });
+  };
+
+  const closePassword = () => {
     setPasswordOpen(false);
     setPasswords({
       current: "",
       next: "",
       confirm: "",
     });
-    setMessage(
-      "Password form validated. Connect your password-change API to save it."
-    );
   };
 
-  const closeEdit = () => setEditOpen(false);
-  const closePassword = () => setPasswordOpen(false);
+  if (loading) {
+    return (
+      <div className="flex min-h-96 items-center justify-center bg-slate-50/80 px-4">
+        <div className="flex flex-col items-center gap-3 text-slate-600">
+          <LoaderCircle size={32} className="animate-spin text-blue-600" />
+          <p className="text-sm font-medium">Loading admin profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full bg-slate-50/80 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Page heading */}
         <div className="mb-6">
-          <p className="text-sm font-medium text-slate-400">
-            Admin Panel
-          </p>
+          <p className="text-sm font-medium text-slate-400">Admin Panel</p>
 
           <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -251,18 +429,22 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Success / information message */}
+        {/* API feedback */}
         {message && (
           <div
             role="status"
-            className="mb-5 flex items-start justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800"
+            className={`mb-5 flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+              messageType === "error"
+                ? "border-red-100 bg-red-50 text-red-800"
+                : "border-blue-100 bg-blue-50 text-blue-800"
+            }`}
           >
             <span>{message}</span>
             <button
               type="button"
               onClick={() => setMessage("")}
               aria-label="Dismiss message"
-              className="shrink-0 rounded p-0.5 hover:bg-blue-100"
+              className="shrink-0 rounded p-0.5 hover:bg-black/5"
             >
               <X size={17} />
             </button>
@@ -277,7 +459,7 @@ export default function Profile() {
           <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-5">
               <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-blue-500 to-blue-700 text-3xl font-bold text-white shadow-md sm:h-32 sm:w-32 sm:text-4xl">
-                {profile.name.trim().charAt(0).toUpperCase() || "A"}
+                {profile.name?.trim().charAt(0).toUpperCase() || "A"}
 
                 <span
                   title="Profile avatar"
@@ -302,10 +484,7 @@ export default function Profile() {
                 </p>
 
                 <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                  <CheckCircle2
-                    size={15}
-                    className="text-emerald-600"
-                  />
+                  <CheckCircle2 size={15} className="text-emerald-600" />
                   Municipal Administration
                 </p>
               </div>
@@ -313,10 +492,7 @@ export default function Profile() {
 
             <button
               type="button"
-              onClick={() => {
-                setMessage("");
-                setEditOpen(true);
-              }}
+              onClick={openEdit}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20"
             >
               <Pencil size={16} />
@@ -327,36 +503,28 @@ export default function Profile() {
 
         {/* Details grid */}
         <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-2">
-          {/* Personal information */}
           <InfoCard
             icon={UserRound}
             title="Personal Information"
             subtitle="Your basic personal details"
           >
-            <div>
-              {personalFields.map(({ label, key, icon: Icon }, index) => (
-                <DetailRow
-                  key={key}
-                  icon={Icon}
-                  label={label}
-                  value={profile[key]}
-                  last={index === personalFields.length - 1}
-                />
-              ))}
-            </div>
+            {personalFields.map(({ label, key, icon: Icon }, index) => (
+              <DetailRow
+                key={key}
+                icon={Icon}
+                label={label}
+                value={profile[key]}
+                last={index === personalFields.length - 1}
+              />
+            ))}
           </InfoCard>
 
-          {/* Account information */}
           <InfoCard
             icon={ShieldCheck}
             title="Account Information"
             subtitle="Your role and access details"
           >
-            <DetailRow
-              icon={UserRound}
-              label="Role"
-              value={profile.role}
-            />
+            <DetailRow icon={UserRound} label="Role" value={profile.role} />
 
             <DetailRow
               icon={Building2}
@@ -364,10 +532,7 @@ export default function Profile() {
               value={profile.department}
             />
 
-            <DetailRow
-              icon={Activity}
-              label="Account Status"
-            >
+            <DetailRow icon={Activity} label="Account Status">
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 {profile.status}
@@ -382,7 +547,6 @@ export default function Profile() {
             />
           </InfoCard>
 
-          {/* Security */}
           <InfoCard
             icon={LockKeyhole}
             title="Security"
@@ -400,7 +564,7 @@ export default function Profile() {
                       Change Password
                     </h3>
                     <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">
-                      Update your password regularly to help protect your account.
+                      Update your password to help protect your account.
                     </p>
                   </div>
                 </div>
@@ -429,13 +593,12 @@ export default function Profile() {
                   Account protection
                 </p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Never share your password. Always sign out when using a shared device.
+                  Never share your password. Sign out when using a shared device.
                 </p>
               </div>
             </div>
           </InfoCard>
 
-          {/* Activity */}
           <InfoCard
             icon={Clock3}
             title="Activity & Login Information"
@@ -444,13 +607,13 @@ export default function Profile() {
             <DetailRow
               icon={CalendarDays}
               label="Last Login"
-              value={profile.lastLogin}
+              value={formatDate(profile.lastLogin)}
             />
 
             <DetailRow
               icon={CalendarDays}
               label="Account Created"
-              value={profile.accountCreated}
+              value={formatDate(profile.accountCreated)}
               last
             />
 
@@ -465,7 +628,7 @@ export default function Profile() {
                     Recent activity
                   </p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Login history and account activity will appear here when connected to your backend.
+                    Your most recent successful login is shown above.
                   </p>
                 </div>
               </div>
@@ -479,27 +642,45 @@ export default function Profile() {
             <form onSubmit={saveProfile} className="space-y-4">
               <FormField
                 label="Full Name"
-                value={profile.name}
-                onChange={(e) => updateField("name", e.target.value)}
+                value={editForm.name || ""}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
                 placeholder="Enter full name"
                 required
+                autoComplete="name"
               />
 
               <FormField
                 label="Email Address"
                 type="email"
-                value={profile.email}
-                onChange={(e) => updateField("email", e.target.value)}
+                value={editForm.email || ""}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                  }))
+                }
                 placeholder="Enter email address"
                 required
+                autoComplete="email"
               />
 
               <FormField
                 label="Phone Number"
                 type="tel"
-                value={profile.phone}
-                onChange={(e) => updateField("phone", e.target.value)}
+                value={editForm.phone || ""}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    phone: e.target.value,
+                  }))
+                }
                 placeholder="Enter phone number"
+                autoComplete="tel"
               />
 
               <label className="block">
@@ -507,8 +688,13 @@ export default function Profile() {
                   Gender
                 </span>
                 <select
-                  value={profile.gender}
-                  onChange={(e) => updateField("gender", e.target.value)}
+                  value={editForm.gender || ""}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      gender: e.target.value,
+                    }))
+                  }
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                 >
                   <option value="">Prefer not to specify</option>
@@ -522,17 +708,23 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={closeEdit}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  disabled={savingProfile}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                  disabled={savingProfile}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Save size={16} />
-                  Save Changes
+                  {savingProfile ? (
+                    <LoaderCircle size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  {savingProfile ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -555,6 +747,7 @@ export default function Profile() {
                 }
                 placeholder="Enter current password"
                 required
+                autoComplete="current-password"
               />
 
               <FormField
@@ -569,6 +762,8 @@ export default function Profile() {
                 }
                 placeholder="At least 8 characters"
                 required
+                minLength={8}
+                autoComplete="new-password"
               />
 
               <FormField
@@ -583,28 +778,36 @@ export default function Profile() {
                 }
                 placeholder="Re-enter new password"
                 required
+                minLength={8}
+                autoComplete="new-password"
               />
 
               <p className="text-xs leading-5 text-slate-500">
-                Password changes must be verified and saved by your backend.
-                This form does not change the actual account password yet.
+                Your current password is verified by the backend before
+                the new password is saved.
               </p>
 
               <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
                 <button
                   type="button"
                   onClick={closePassword}
-                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  disabled={savingPassword}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+                  disabled={savingPassword}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <LockKeyhole size={16} />
-                  Update Password
+                  {savingPassword ? (
+                    <LoaderCircle size={16} className="animate-spin" />
+                  ) : (
+                    <LockKeyhole size={16} />
+                  )}
+                  {savingPassword ? "Updating..." : "Update Password"}
                 </button>
               </div>
             </form>
