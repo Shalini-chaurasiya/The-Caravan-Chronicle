@@ -1,14 +1,13 @@
+
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import Admin from "../models/Admin.js";
 
-// ===============================
 // ADMIN LOGIN
-// ===============================
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check whether email and password were provided
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -16,32 +15,28 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    // Check required environment variables
-    if (
-      !process.env.ADMIN_EMAIL ||
-      !process.env.ADMIN_PASSWORD_HASH ||
-      !process.env.JWT_SECRET
-    ) {
-      console.error("Admin environment variables are missing.");
-
+    if (!process.env.JWT_SECRET) {
       return res.status(500).json({
         success: false,
-        message: "Admin configuration is missing on the server.",
+        message: "JWT configuration is missing",
       });
     }
 
-    // Check admin email
-    if (email.trim() !== process.env.ADMIN_EMAIL.trim()) {
+    const admin = await Admin.findOne({
+      email: email.trim().toLowerCase(),
+      role: "admin",
+    }).select("+password");
+
+    if (!admin || admin.status !== "Active") {
       return res.status(401).json({
         success: false,
         message: "Invalid admin credentials",
       });
     }
 
-    // Compare entered password with bcrypt hash
     const isPasswordCorrect = await bcrypt.compare(
       password,
-      process.env.ADMIN_PASSWORD_HASH
+      admin.password
     );
 
     if (!isPasswordCorrect) {
@@ -51,16 +46,17 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    // Create JWT
+    admin.lastLogin = new Date();
+    await admin.save();
+
+    // Preserve your existing JWT claims and expiry.
     const token = jwt.sign(
       {
-        email: process.env.ADMIN_EMAIL,
+        email: admin.email,
         role: "admin",
       },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
 
     return res.status(200).json({
@@ -68,11 +64,11 @@ const adminLogin = async (req, res) => {
       message: "Admin login successful",
       token,
       admin: {
-        email: process.env.ADMIN_EMAIL,
-        role: "admin",
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
       },
     });
-
   } catch (error) {
     console.error("Admin Login Error:", error);
 
@@ -83,33 +79,6 @@ const adminLogin = async (req, res) => {
   }
 };
 
-
-// ===============================
-// ADMIN DASHBOARD
-// ===============================
-const getAdminDashboard = async (req, res) => {
-  try {
-    return res.status(200).json({
-      success: true,
-      message: "Welcome to Admin Dashboard",
-      admin: req.admin,
-    });
-
-  } catch (error) {
-    console.error("Admin Dashboard Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-};
-
-
-// ===============================
-// EXPORT
-// ===============================
 export {
   adminLogin,
-  getAdminDashboard,
 };

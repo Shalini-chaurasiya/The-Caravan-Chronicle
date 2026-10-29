@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 
 import express from "express";
@@ -14,9 +15,14 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import complaintRoutes from "./routes/complaintRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import adminProfileRoutes from "./routes/adminProfileRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
 import adminComplaintRoutes from "./routes/adminComplaintRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
+import slaRoutes from "./routes/slaRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+
+import { seedAdmin } from "./utils/seedAdmin.js";
 
 // ==========================================
 // DIRECTORY PATH
@@ -29,10 +35,7 @@ const __dirname = path.dirname(__filename);
 // DNS CONFIGURATION
 // ==========================================
 
-dns.setServers([
-  "8.8.8.8",
-  "8.8.4.4",
-]);
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 // ==========================================
 // EXPRESS APP
@@ -68,14 +71,11 @@ app.use(
 
 // ==========================================
 // SERVE UPLOADED FILES
-// Files are stored in backened/uploads/
 // ==========================================
 
 app.use(
   "/uploads",
-  express.static(
-    path.join(__dirname, "uploads")
-  )
+  express.static(path.join(__dirname, "uploads"))
 );
 
 // ==========================================
@@ -85,8 +85,7 @@ app.use(
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message:
-      "Caravan Chronicle Backend is running",
+    message: "Caravan Chronicle Backend is running",
   });
 });
 
@@ -94,105 +93,58 @@ app.get("/", (req, res) => {
 // API ROUTES
 // ==========================================
 
-// ------------------------------------------
-// AUTH
-// ------------------------------------------
+app.use("/api/auth", authRoutes);
 
-app.use(
-  "/api/auth",
-  authRoutes
-);
+app.use("/api/contact", contactRoutes);
 
-// ------------------------------------------
-// CONTACT
-// ------------------------------------------
+app.use("/api/dashboard", dashboardRoutes);
 
-app.use(
-  "/api/contact",
-  contactRoutes
-);
+app.use("/api/complaints", complaintRoutes);
 
-// ------------------------------------------
-// DASHBOARD
-// ------------------------------------------
+app.use("/api/profile", profileRoutes);
 
-app.use(
-  "/api/dashboard",
-  dashboardRoutes
-);
+// ==========================================
+// ADMIN ROUTES
+// ==========================================
 
-// ------------------------------------------
-// CITIZEN COMPLAINTS
-// ------------------------------------------
+// POST /api/admin/login
+// GET  /api/admin/dashboard
+app.use("/api/admin", adminRoutes);
 
-app.use(
-  "/api/complaints",
-  complaintRoutes
-);
+// GET /api/admin/profile
+// PUT /api/admin/profile
+// PUT /api/admin/profile/password
+app.use("/api/admin", adminProfileRoutes);
 
-// ------------------------------------------
-// PROFILE
-// ------------------------------------------
+// ==========================================
+// ADMIN COMPLAINTS
+// ==========================================
 
-app.use(
-  "/api/profile",
-  profileRoutes
-);
+app.use("/api/admin/complaints", adminComplaintRoutes);
 
-// ------------------------------------------
-// ADMIN
-// ------------------------------------------
-
-app.use(
-  "/api/admin",
-  adminRoutes
-);
-
-// ------------------------------------------
-// ADMIN - ALL COMPLAINTS
-// ------------------------------------------
-// Used by Admin AllComplaints.jsx
-//
-// GET    /api/admin/complaints
-// GET    /api/admin/complaints/:id
-// GET    /api/admin/complaints/:id/staff
-// PUT    /api/admin/complaints/:id/assign
-// PUT    /api/admin/complaints/:id/remove-staff
-// PUT    /api/admin/complaints/:id/status
-// DELETE /api/admin/complaints/:id
-// ------------------------------------------
-
-app.use(
-  "/api/admin/complaints",
-  adminComplaintRoutes
-);
-
-// ------------------------------------------
+// ==========================================
 // STAFF MANAGEMENT
-// ------------------------------------------
+// ==========================================
 
-app.use(
-  "/api/staff",
-  staffRoutes
-);
+app.use("/api/staff", staffRoutes);
 
-// ------------------------------------------
+// ==========================================
 // DEPARTMENT MANAGEMENT
-// ------------------------------------------
-// Used by Admin Departments.jsx
-//
-// GET    /api/departments
-// GET    /api/departments/:id
-// GET    /api/departments/:id/staff
-// POST   /api/departments
-// PUT    /api/departments/:id
-// DELETE /api/departments/:id
-// ------------------------------------------
+// ==========================================
 
-app.use(
-  "/api/departments",
-  departmentRoutes
-);
+app.use("/api/departments", departmentRoutes);
+
+// ==========================================
+// SLA & ESCALATION SETTINGS
+// ==========================================
+
+app.use("/api/sla", slaRoutes);
+
+// ==========================================
+// REPORTS & ANALYTICS
+// ==========================================
+
+app.use("/api/reports", reportRoutes);
 
 // ==========================================
 // 404 HANDLER
@@ -201,8 +153,7 @@ app.use(
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message:
-      `Route not found: ${req.method} ${req.originalUrl}`,
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
   });
 });
 
@@ -210,64 +161,40 @@ app.use((req, res) => {
 // ERROR HANDLER
 // ==========================================
 
-app.use(
-  (err, req, res, next) => {
-    console.error(
-      "Server Error:",
-      err
-    );
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err);
 
-    // --------------------------------------
-    // MULTER UPLOAD ERRORS
-    // --------------------------------------
-
-    if (
-      err.name === "MulterError"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          err.code === "LIMIT_FILE_SIZE"
-            ? "Photo size must not exceed 2 MB."
-            : err.message,
-      });
-    }
-
-    // --------------------------------------
-    // INVALID PHOTO FORMAT
-    // --------------------------------------
-
-    if (
-      err.message ===
-      "Only JPG, PNG, and WebP images are allowed."
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: err.message,
-      });
-    }
-
-    // --------------------------------------
-    // OTHER ERRORS
-    // --------------------------------------
-
-    return res.status(
-      err.status || 500
-    ).json({
+  if (err.name === "MulterError") {
+    return res.status(400).json({
       success: false,
       message:
-        err.message ||
-        "Internal server error",
+        err.code === "LIMIT_FILE_SIZE"
+          ? "Photo size must not exceed 2 MB."
+          : err.message,
     });
   }
-);
+
+  if (
+    err.message ===
+    "Only JPG, PNG, and WebP images are allowed."
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  return res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
+});
 
 // ==========================================
 // PORT
 // ==========================================
 
-const PORT =
-  process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 // ==========================================
 // START SERVER
@@ -275,104 +202,47 @@ const PORT =
 
 const startServer = async () => {
   try {
-    console.log(
-      "Connecting to MongoDB..."
-    );
+    console.log("Connecting to MongoDB...");
 
     await connectDB();
 
-    console.log(
-      "MongoDB connected successfully"
-    );
+    console.log("MongoDB connected successfully");
 
-    app.listen(
-      PORT,
-      () => {
-        console.log(
-          "=========================================="
-        );
+    // Initialize the admin account if it does not exist.
+    await seedAdmin();
 
-        console.log(
-          "       CARAVAN CHRONICLE BACKEND"
-        );
+    console.log("Admin initialization completed");
 
-        console.log(
-          "=========================================="
-        );
+    app.listen(PORT, () => {
+      console.log("==========================================");
+      console.log("       CARAVAN CHRONICLE BACKEND");
+      console.log("==========================================");
 
-        console.log(
-          `Server running on port: ${PORT}`
-        );
+      console.log(`Server running on port: ${PORT}`);
+      console.log(`Server URL: http://localhost:${PORT}`);
 
-        console.log(
-          `Server URL: http://localhost:${PORT}`
-        );
+      console.log("------------------------------------------");
+      console.log(`Auth API:         http://localhost:${PORT}/api/auth`);
+      console.log(`Contact API:      http://localhost:${PORT}/api/contact`);
+      console.log(`Dashboard API:    http://localhost:${PORT}/api/dashboard`);
+      console.log(`Complaint API:    http://localhost:${PORT}/api/complaints`);
+      console.log(`Profile API:      http://localhost:${PORT}/api/profile`);
+      console.log(`Admin API:        http://localhost:${PORT}/api/admin`);
+      console.log(`Admin Profile:    http://localhost:${PORT}/api/admin/profile`);
+      console.log(`Admin Complaints: http://localhost:${PORT}/api/admin/complaints`);
+      console.log(`Staff API:        http://localhost:${PORT}/api/staff`);
+      console.log(`Department API:   http://localhost:${PORT}/api/departments`);
+      console.log(`SLA API:          http://localhost:${PORT}/api/sla`);
+      console.log(`Reports API:      http://localhost:${PORT}/api/reports`);
+      console.log(`Uploads URL:      http://localhost:${PORT}/uploads/`);
 
-        console.log(
-          "------------------------------------------"
-        );
-
-        console.log(
-          `Auth API:       http://localhost:${PORT}/api/auth`
-        );
-
-        console.log(
-          `Contact API:    http://localhost:${PORT}/api/contact`
-        );
-
-        console.log(
-          `Dashboard API:  http://localhost:${PORT}/api/dashboard`
-        );
-
-        console.log(
-          `Complaint API:  http://localhost:${PORT}/api/complaints`
-        );
-
-        console.log(
-          `Profile API:    http://localhost:${PORT}/api/profile`
-        );
-
-        console.log(
-          `Admin API:      http://localhost:${PORT}/api/admin`
-        );
-
-        console.log(
-          `Admin Complaints: http://localhost:${PORT}/api/admin/complaints`
-        );
-
-        console.log(
-          `Staff API:      http://localhost:${PORT}/api/staff`
-        );
-
-        console.log(
-          `Department API: http://localhost:${PORT}/api/departments`
-        );
-
-        console.log(
-          `Uploads URL:    http://localhost:${PORT}/uploads/`
-        );
-
-        console.log(
-          "=========================================="
-        );
-      }
-    );
+      console.log("==========================================");
+    });
   } catch (error) {
-    console.error(
-      "=========================================="
-    );
-
-    console.error(
-      "SERVER STARTUP FAILED"
-    );
-
-    console.error(
-      "=========================================="
-    );
-
-    console.error(
-      error
-    );
+    console.error("==========================================");
+    console.error("SERVER STARTUP FAILED");
+    console.error("==========================================");
+    console.error(error);
 
     process.exit(1);
   }

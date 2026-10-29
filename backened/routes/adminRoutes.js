@@ -1,10 +1,10 @@
 import express from "express";
 
 import {
-  adminLogin,
-  getAdminDashboard
+  adminLogin
 } from "../controllers/adminController.js";
 
+import { getAdminDashboard } from "../controllers/dashboardController.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
 
 
