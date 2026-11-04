@@ -1233,6 +1233,8 @@ const AllComplaints = () => {
           );
         }
 
+        window.dispatchEvent(new Event("admin-notifications-updated"));
+
         const returnedComplaint =
           data?.complaint ||
           data?.data ||
@@ -1359,6 +1361,8 @@ const AllComplaints = () => {
               "Failed to update status."
           );
         }
+
+        window.dispatchEvent(new Event("admin-notifications-updated"));
 
         const returnedComplaint =
           data?.complaint ||
