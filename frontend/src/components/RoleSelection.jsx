@@ -1,9 +1,9 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const RoleSelection = () => {
   const [selectedRole, setSelectedRole] = useState("");
-
   const navigate = useNavigate();
 
   const roles = [
@@ -45,7 +45,7 @@ const RoleSelection = () => {
 
     // Staff Login
     if (selectedRole === "staff") {
-      alert("Staff login page is coming soon.");
+      window.location.href = "http://localhost:5175/staff/login";
       return;
     }
   };
@@ -104,7 +104,6 @@ const RoleSelection = () => {
                 }
               `}
             >
-              {/* Radio Button */}
               <input
                 type="radio"
                 name="role"
@@ -114,7 +113,6 @@ const RoleSelection = () => {
                 className="w-4 h-4 accent-blue-600 shrink-0"
               />
 
-              {/* Role Information */}
               <div>
                 <h3 className="text-base font-semibold text-slate-900">
                   {role.title}
@@ -130,27 +128,15 @@ const RoleSelection = () => {
       </div>
 
       {/* Buttons */}
-      <div
-        className="
-          grid
-          grid-cols-2
-          gap-3
-          mt-5
-        "
-      >
+      <div className="grid grid-cols-2 gap-3 mt-5">
+
         {/* Login Button */}
         <button
           onClick={handleLogin}
           className="
-            w-full
-            bg-blue-600
-            hover:bg-blue-700
-            text-white
-            text-sm
-            py-2.5
-            rounded-lg
-            font-semibold
-            transition
+            w-full bg-blue-600 hover:bg-blue-700
+            text-white text-sm py-2.5 rounded-lg
+            font-semibold transition
           "
         >
           Login
@@ -161,28 +147,18 @@ const RoleSelection = () => {
           <button
             onClick={handleRegister}
             className="
-              w-full
-              border
-              border-blue-600
-              text-blue-600
-              hover:bg-blue-50
-              text-sm
-              py-2.5
-              rounded-lg
-              font-semibold
-              transition
+              w-full border border-blue-600
+              text-blue-600 hover:bg-blue-50
+              text-sm py-2.5 rounded-lg
+              font-semibold transition
             "
           >
             Register
           </button>
         )}
 
-        {/* Invisible placeholder to keep Login centered/consistent
-            when Staff or Owner is selected */}
-        {selectedRole &&
-          selectedRole !== "citizen" && (
-            <div></div>
-          )}
+        {/* Placeholder */}
+        {selectedRole && selectedRole !== "citizen" && <div />}
       </div>
 
       {/* Bottom Message */}
