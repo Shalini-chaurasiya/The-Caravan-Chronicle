@@ -6,6 +6,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 
 import {
+  staffLogin,
   createStaff,
   getAllStaff,
   getStaffById,
@@ -68,6 +69,9 @@ const upload = multer({
     fileSize: 2 * 1024 * 1024,
   },
 });
+
+// Staff sign-in uses the credentials created by an admin.
+router.post("/login", staffLogin);
 
 // All routes below require admin authentication
 router.use(adminMiddleware);

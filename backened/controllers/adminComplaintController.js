@@ -2,50 +2,11 @@
 import mongoose from "mongoose";
 import Complaint from "../models/Complaint.js";
 import Staff from "../models/Staff.js";
-
-// ==========================================
-// HELPER: DETERMINE DEPARTMENT FROM TYPE
-// Used only to filter suitable staff.
-// Department is not saved in Complaint.
-// ==========================================
-
-const getDepartmentFromType = (complaintType = "") => {
-  const type = complaintType.trim().toLowerCase();
-
-  if (/water|supply|leakage|pipeline/.test(type)) {
-    return "Water Supply";
-  }
-
-  if (/road|pothole|footpath/.test(type)) {
-    return "Roads & Infrastructure";
-  }
-
-  if (/electric|street light|lighting|lamp/.test(type)) {
-    return "Electrical & Street Lighting";
-  }
-
-  if (/drain|sewer/.test(type)) {
-    return "Drainage & Sewerage";
-  }
-
-  if (/sanitation|garbage|waste|cleanliness/.test(type)) {
-    return "Sanitation";
-  }
-
-  if (/park|garden|horticulture/.test(type)) {
-    return "Parks & Horticulture";
-  }
-
-  if (/traffic|signal/.test(type)) {
-    return "Traffic Management";
-  }
-
-  if (/building|construction/.test(type)) {
-    return "Building & Construction";
-  }
-
-  return "General Administration";
-};
+import getDepartmentFromComplaintType from "../utils/getDepartmentFromComplaintType.js";
+import {
+  createComplaintAdminActionNotification,
+  createComplaintStatusNotification,
+} from "../utils/createComplaintNotification.js";
 
 // ==========================================
 // HELPER: VALIDATE MONGODB ID
@@ -158,7 +119,7 @@ const getStaffForComplaint = async (req, res) => {
       });
     }
 
-    const department = getDepartmentFromType(
+    const department = getDepartmentFromComplaintType(
       complaint.complaintType
     );
 
@@ -233,7 +194,7 @@ const assignStaff = async (req, res) => {
       });
     }
 
-    const department = getDepartmentFromType(
+    const department = getDepartmentFromComplaintType(
       complaint.complaintType
     );
 
@@ -256,6 +217,11 @@ const assignStaff = async (req, res) => {
     }
 
     await complaint.save();
+    await createComplaintAdminActionNotification(
+      complaint,
+      "Staff assigned",
+      staff.name
+    );
 
     const updatedComplaint = await populateComplaint(
       Complaint.findById(complaint._id)
@@ -307,6 +273,10 @@ const removeStaff = async (req, res) => {
     }
 
     await complaint.save();
+    await createComplaintAdminActionNotification(
+      complaint,
+      "Staff assignment removed"
+    );
 
     const updatedComplaint = await populateComplaint(
       Complaint.findById(complaint._id)
@@ -367,8 +337,13 @@ const updateComplaintStatus = async (req, res) => {
       });
     }
 
+    const previousStatus = complaint.status;
     complaint.status = status;
     await complaint.save();
+
+    if (status !== previousStatus) {
+      await createComplaintStatusNotification(complaint, status);
+    }
 
     const updatedComplaint = await populateComplaint(
       Complaint.findById(complaint._id)

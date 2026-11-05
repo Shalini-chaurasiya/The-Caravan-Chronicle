@@ -21,6 +21,7 @@ import adminComplaintRoutes from "./routes/adminComplaintRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import slaRoutes from "./routes/slaRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 import { seedAdmin } from "./utils/seedAdmin.js";
 
@@ -52,6 +53,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
+      "http://localhost:5175",
     ],
     credentials: true,
   })
@@ -147,6 +149,12 @@ app.use("/api/sla", slaRoutes);
 app.use("/api/reports", reportRoutes);
 
 // ==========================================
+// ADMIN NOTIFICATIONS
+// ==========================================
+
+app.use("/api/admin/notifications", notificationRoutes);
+
+// ==========================================
 // 404 HANDLER
 // ==========================================
 
@@ -234,6 +242,7 @@ const startServer = async () => {
       console.log(`Department API:   http://localhost:${PORT}/api/departments`);
       console.log(`SLA API:          http://localhost:${PORT}/api/sla`);
       console.log(`Reports API:      http://localhost:${PORT}/api/reports`);
+      console.log(`Admin Notifications: http://localhost:${PORT}/api/admin/notifications`);
       console.log(`Uploads URL:      http://localhost:${PORT}/uploads/`);
 
       console.log("==========================================");

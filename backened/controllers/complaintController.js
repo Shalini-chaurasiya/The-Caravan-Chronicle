@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Complaint from "../models/Complaint.js";
 import User from "../models/User.js";
 import Staff from "../models/Staff.js";
+import { createComplaintNotification } from "../utils/createComplaintNotification.js";
 
 // ==========================================
 // HELPER: GET LOGGED-IN USER ID
@@ -113,6 +114,8 @@ export const createComplaint = async (req, res) => {
       photo: photoData,
       status: "Pending",
     });
+
+    await createComplaintNotification(complaint);
 
     const populatedComplaint = await populateComplaint(
       Complaint.findById(complaint._id)

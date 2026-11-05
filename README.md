@@ -326,6 +326,17 @@ http://localhost:5174
 /api/admin
 ```
 
+### Admin Notifications
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/admin/notifications` | Get the latest 10 notifications and unread count |
+| `PATCH` | `/api/admin/notifications/read` | Mark all notifications as read |
+
+Both endpoints require an admin token. Complaint submissions, status changes, and
+complaints that exceed an active department SLA with system notifications enabled
+create admin notifications.
+
 ### Staff
 
 ```text
@@ -516,7 +527,7 @@ npm run dev
 
 Possible future enhancements include:
 
-- Real-time complaint notifications
+- WebSocket-based live notification delivery
 - Email/SMS notifications
 - Advanced reports and charts
 - Automatic SLA escalation

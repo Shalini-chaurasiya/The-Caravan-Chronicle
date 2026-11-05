@@ -1,7 +1,79 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
 import Staff from "../models/Staff.js";
 import Complaint from "../models/Complaint.js";
+
+// ============================================
+// STAFF LOGIN
+// POST /api/staff/login
+// ============================================
+const staffLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (typeof email !== "string" || typeof password !== "string" ||
+        !email.trim() || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required.",
+      });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: "JWT configuration is missing.",
+      });
+    }
+
+    const staff = await Staff.findOne({
+      email: email.trim().toLowerCase(),
+    }).select("+password");
+
+    if (
+      !staff ||
+      staff.status !== "Active" ||
+      !(await bcrypt.compare(password, staff.password))
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        staffId: String(staff._id),
+        email: staff.email,
+        role: "staff",
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Staff login successful.",
+      token,
+      staff: {
+        _id: staff._id,
+        staffId: staff.staffId,
+        name: staff.name,
+        email: staff.email,
+        department: staff.department,
+        role: staff.role,
+      },
+    });
+  } catch (error) {
+    console.error("Staff login error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while signing in.",
+    });
+  }
+};
 
 // ============================================
 // CREATE STAFF
@@ -492,6 +564,7 @@ const deleteStaff = async (req, res) => {
 // EXPORT
 // ============================================
 export {
+  staffLogin,
   createStaff,
   getAllStaff,
   getStaffById,
