@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:3000"
@@ -41,6 +42,7 @@ const notificationColors = {
 };
 
 const NotificationDropdown = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -132,10 +134,23 @@ const NotificationDropdown = () => {
       setUnreadCount((current) => Math.max(0, current - 1));
       setError("");
       window.dispatchEvent(new Event("admin-notifications-updated"));
+      return true;
     } catch (requestError) {
       setError(requestError.message || "Unable to update notification.");
+      return false;
     } finally {
       setMarkingNotificationId(null);
+    }
+  };
+
+  const openNotification = async (event, notification) => {
+    event.preventDefault();
+
+    if (await markAsRead(notification._id)) {
+      setIsOpen(false);
+      navigate(
+        `/admin/complaints/${notification.complaint?._id || notification.complaint}`
+      );
     }
   };
 
@@ -232,7 +247,11 @@ const NotificationDropdown = () => {
                     notificationColors[notification.type] || "bg-slate-400"
                   }`}
                 />
-                <div className="min-w-0">
+                <Link
+                  to={`/admin/complaints/${notification.complaint?._id || notification.complaint}`}
+                  onClick={(event) => void openNotification(event, notification)}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <strong className="block text-xs text-slate-800">
                     {notification.title}
                   </strong>
@@ -242,11 +261,13 @@ const NotificationDropdown = () => {
                   <small className="text-[10px] text-slate-400">
                     {formatTime(notification.createdAt)}
                   </small>
-                </div>
+                </Link>
                 <button
                   type="button"
                   onClick={() => markAsRead(notification._id)}
-                  disabled={markingRead || markingNotificationId !== null}
+                  disabled={
+                    markingRead || markingNotificationId !== null
+                  }
                   className="ml-auto shrink-0 self-center text-[10px] text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:text-slate-400"
                 >
                   {markingNotificationId === notification._id
