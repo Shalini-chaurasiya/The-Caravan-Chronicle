@@ -463,6 +463,8 @@ uploads/
 
 ---
 
+[![Architecture diagram](https://gitdiagram.com/diagram-badge.svg)](https://gitdiagram.com/shalini-chaurasiya/the-caravan-chronicle?utm_source=readme&utm_medium=badge)
+
 ## 🧩 Main Admin Modules
 
 ```text
