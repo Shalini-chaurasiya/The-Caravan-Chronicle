@@ -1,4 +1,4 @@
-import StaffSidebar from "./components/StaffSidebar";
+import StaffSidebar from "../components/StaffSidebar";
 import {
   ClipboardList,
   Clock,
