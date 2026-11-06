@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import StaffSidebar from "./components/StaffSidebar";
+import React, { useState, useRef } from "react";
+import StaffSidebar from "../components/StaffSidebar";
 import {
   User,
   Mail,
@@ -13,43 +13,192 @@ import {
   Save,
   X,
   ShieldCheck,
+  Hash,
+  Clock,
+  Map,
+  Award,
+  Camera,
+  Trash2,
 } from "lucide-react";
 
 const StaffProfile = () => {
   const savedStaff = JSON.parse(localStorage.getItem("staff") || "{}");
 
+  const fileInputRef = useRef(null);
+
+  const formatDate = (date) => {
+    if (!date) return "";
+    return new Date(date).toISOString().split("T")[0];
+  };
+
   const initialProfile = {
+    _id: savedStaff._id || "",
+    staffId: savedStaff.staffId || "",
     name: savedStaff.name || "",
     email: savedStaff.email || "",
     phone: savedStaff.phone || "",
-    employeeId: savedStaff.employeeId || "",
+    gender: savedStaff.gender || "",
+    dob: formatDate(savedStaff.dob),
     department: savedStaff.department || "",
-    designation: savedStaff.designation || "",
+    role: savedStaff.role || "",
+    experience: savedStaff.experience ?? "",
     address: savedStaff.address || "",
-    joiningDate: savedStaff.joiningDate || "",
+    city: savedStaff.city || "",
+    state: savedStaff.state || "",
+    pincode: savedStaff.pincode || "",
+    photo: savedStaff.photo || "",
+    status: savedStaff.status || "Active",
+    createdAt: savedStaff.createdAt || "",
+    updatedAt: savedStaff.updatedAt || "",
   };
 
   const [staff, setStaff] = useState(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+
+  const API_URL =
+    import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+  const getPhotoUrl = (photo) => {
+    if (!photo) return "";
+
+    return photo.startsWith("http")
+      ? photo
+      : `${API_URL}${photo.startsWith("/") ? "" : "/"}${photo}`;
+  };
+
+  const photoUrl = photoPreview || getPhotoUrl(staff.photo);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setStaff((prev) => ({ ...prev, [name]: value }));
+
+    setStaff((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSave = () => {
-    const updatedStaff = {
-      ...savedStaff,
-      ...staff,
-    };
+  // Select profile photo
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
 
-    localStorage.setItem("staff", JSON.stringify(updatedStaff));
-    setIsEditing(false);
-    alert("Profile updated successfully!");
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should not exceed 5 MB.");
+      return;
+    }
+
+    setSelectedPhoto(file);
+
+    const preview = URL.createObjectURL(file);
+    setPhotoPreview(preview);
+  };
+
+  // Remove selected profile photo
+  const handleRemovePhoto = () => {
+    setSelectedPhoto(null);
+    setPhotoPreview("");
+    setStaff((prev) => ({
+      ...prev,
+      photo: "",
+    }));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Save profile
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("staffToken");
+
+      if (!token) {
+        alert("Please login again.");
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append("name", staff.name);
+      formData.append("phone", staff.phone);
+      formData.append("gender", staff.gender);
+      formData.append("dob", staff.dob);
+      formData.append("experience", staff.experience);
+      formData.append("address", staff.address);
+      formData.append("city", staff.city);
+      formData.append("state", staff.state);
+      formData.append("pincode", staff.pincode);
+
+      // Include photo only when a new photo is selected
+      if (selectedPhoto) {
+        formData.append("photo", selectedPhoto);
+      }
+
+      // Include this only if your backend supports photo removal
+      if (!staff.photo && !selectedPhoto && savedStaff.photo) {
+        formData.append("removePhoto", "true");
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/staff/profile`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update profile.");
+      }
+
+      const updatedStaff = {
+        ...savedStaff,
+        ...(data.staff || data.data || {}),
+      };
+
+      localStorage.setItem("staff", JSON.stringify(updatedStaff));
+
+      setStaff({
+        ...staff,
+        ...updatedStaff,
+        dob: formatDate(updatedStaff.dob),
+      });
+
+      setSelectedPhoto(null);
+      setPhotoPreview("");
+      setIsEditing(false);
+
+      alert("Profile updated successfully!");
+
+      window.location.reload();
+    } catch (error) {
+      console.error("Profile update error:", error);
+      alert(error.message || "Something went wrong.");
+    }
   };
 
   const handleCancel = () => {
     setStaff(initialProfile);
+    setSelectedPhoto(null);
+    setPhotoPreview("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
     setIsEditing(false);
   };
 
@@ -65,6 +214,7 @@ const StaffProfile = () => {
       name: "email",
       icon: Mail,
       type: "email",
+      readOnly: true,
     },
     {
       label: "Phone Number",
@@ -73,28 +223,44 @@ const StaffProfile = () => {
       type: "tel",
     },
     {
-      label: "Employee ID",
-      name: "employeeId",
-      icon: Briefcase,
+      label: "Staff ID",
+      name: "staffId",
+      icon: Hash,
       type: "text",
+      readOnly: true,
+    },
+    {
+      label: "Gender",
+      name: "gender",
+      icon: User,
+      type: "select",
+      options: ["Male", "Female", "Other"],
+    },
+    {
+      label: "Date of Birth",
+      name: "dob",
+      icon: Calendar,
+      type: "date",
     },
     {
       label: "Department",
       name: "department",
       icon: Building2,
       type: "text",
+      readOnly: true,
     },
     {
-      label: "Designation",
-      name: "designation",
+      label: "Role / Designation",
+      name: "role",
       icon: Briefcase,
       type: "text",
+      readOnly: true,
     },
     {
-      label: "Joining Date",
-      name: "joiningDate",
-      icon: Calendar,
-      type: "date",
+      label: "Experience (Years)",
+      name: "experience",
+      icon: Award,
+      type: "number",
     },
     {
       label: "Address",
@@ -102,13 +268,48 @@ const StaffProfile = () => {
       icon: MapPin,
       type: "text",
     },
+    {
+      label: "City",
+      name: "city",
+      icon: Map,
+      type: "text",
+    },
+    {
+      label: "State",
+      name: "state",
+      icon: Map,
+      type: "text",
+    },
+    {
+      label: "Pincode",
+      name: "pincode",
+      icon: Hash,
+      type: "text",
+    },
+    {
+      label: "Account Status",
+      name: "status",
+      icon: ShieldCheck,
+      type: "select",
+      options: ["Active", "Inactive"],
+    },
   ];
+
+  const formatDisplayDate = (date) => {
+    if (!date) return "Not available";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-[#f3f6fc]">
       <StaffSidebar />
 
-      <main className="flex-1 min-w-0 p-5 md:p-8">
+      <main className="ml-64 flex-1 min-w-0 p-5 md:p-8">
         <div className="max-w-6xl mx-auto">
 
           {/* Page Heading */}
@@ -116,6 +317,7 @@ const StaffProfile = () => {
             <h1 className="text-3xl font-bold text-[#101f43]">
               My Profile
             </h1>
+
             <p className="text-slate-500 mt-2">
               Manage your personal and professional information.
             </p>
@@ -125,8 +327,51 @@ const StaffProfile = () => {
           <div className="bg-gradient-to-r from-[#101f43] to-blue-700 rounded-2xl p-6 md:p-8 mb-7 text-white shadow-md">
             <div className="flex flex-col sm:flex-row items-center gap-5">
 
-              <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-[#101f43] border-4 border-blue-200">
-                <User size={48} />
+              {/* Editable Profile Photo */}
+              <div className="relative">
+                <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-[#101f43] border-4 border-blue-200 overflow-hidden">
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt="Staff Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={48} />
+                  )}
+                </div>
+
+                {isEditing && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 p-2 rounded-full text-white border-2 border-white"
+                      title="Change profile photo"
+                    >
+                      <Camera size={16} />
+                    </button>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+
+                    {(photoUrl || selectedPhoto) && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 p-1.5 rounded-full text-white border-2 border-white"
+                        title="Remove profile photo"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="text-center sm:text-left flex-1">
@@ -135,30 +380,42 @@ const StaffProfile = () => {
                 </h2>
 
                 <p className="text-blue-100 mt-1">
-                  {staff.designation || "Staff Designation"}
+                  {staff.role || "Staff Designation"}
                 </p>
 
                 <p className="text-blue-200 text-sm mt-2">
-                  Employee ID: {staff.employeeId || "Not assigned"}
+                  Staff ID: {staff.staffId || "Not assigned"}
                 </p>
+
+                <p className="text-blue-200 text-sm mt-1">
+                  {staff.department || "Department not assigned"}
+                </p>
+
+                {isEditing && (
+                  <p className="text-blue-200 text-xs mt-2">
+                    Click the camera icon to change your profile photo.
+                    Maximum size: 5 MB.
+                  </p>
+                )}
               </div>
 
               <div className="bg-green-500/20 text-green-100 px-4 py-2 rounded-full text-sm flex items-center gap-2">
                 <ShieldCheck size={17} />
-                Staff Account
+                {staff.status || "Staff Account"}
               </div>
 
             </div>
           </div>
 
-          {/* Personal Details Card */}
+          {/* Personal and Professional Details */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
 
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
               <div>
                 <h2 className="text-xl font-bold text-[#101f43]">
-                  Personal Information
+                  Personal & Professional Information
                 </h2>
+
                 <p className="text-sm text-slate-500 mt-1">
                   Your registered account details
                 </p>
@@ -181,12 +438,6 @@ const StaffProfile = () => {
               {profileFields.map((field) => {
                 const Icon = field.icon;
 
-                const isReadOnly = [
-                  "email",
-                  "employeeId",
-                  "department",
-                ].includes(field.name);
-
                 return (
                   <div key={field.name}>
                     <label className="block text-sm font-semibold text-slate-600 mb-2">
@@ -194,20 +445,46 @@ const StaffProfile = () => {
                     </label>
 
                     <div className="flex items-center gap-3 border border-slate-200 rounded-xl px-4 py-3 bg-slate-50 focus-within:border-blue-500 transition">
-                      <Icon size={19} className="text-blue-600 shrink-0" />
 
-                      <input
-                        type={field.type}
-                        name={field.name}
-                        value={staff[field.name]}
-                        onChange={handleChange}
-                        disabled={!isEditing || isReadOnly}
-                        placeholder={`Enter ${field.label}`}
-                        className="w-full bg-transparent outline-none text-slate-700 disabled:cursor-not-allowed disabled:text-slate-500"
+                      <Icon
+                        size={19}
+                        className="text-blue-600 shrink-0"
                       />
+
+                      {field.type === "select" ? (
+                        <select
+                          name={field.name}
+                          value={staff[field.name]}
+                          onChange={handleChange}
+                          disabled={!isEditing}
+                          className="w-full bg-transparent outline-none text-slate-700 disabled:cursor-not-allowed"
+                        >
+                          <option value="">
+                            Select {field.label}
+                          </option>
+
+                          {field.options.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={field.type}
+                          name={field.name}
+                          value={staff[field.name]}
+                          onChange={handleChange}
+                          disabled={!isEditing || field.readOnly}
+                          placeholder={`Enter ${field.label}`}
+                          min={field.type === "number" ? "0" : undefined}
+                          className="w-full bg-transparent outline-none text-slate-700 disabled:cursor-not-allowed disabled:text-slate-500"
+                        />
+                      )}
+
                     </div>
 
-                    {isEditing && isReadOnly && (
+                    {isEditing && field.readOnly && (
                       <p className="text-xs text-slate-400 mt-1">
                         Contact administrator to change this detail.
                       </p>
@@ -245,11 +522,12 @@ const StaffProfile = () => {
 
           {/* Account Information */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mt-7">
+
             <h2 className="text-lg font-bold text-[#101f43] mb-4">
               Account Information
             </h2>
 
-            <div className="flex items-center justify-between py-3 border-b border-slate-100">
+            <div className="flex items-center justify-between py-3 border-b border-slate-100 gap-4">
               <span className="text-slate-500 text-sm">
                 Account Type
               </span>
@@ -258,7 +536,26 @@ const StaffProfile = () => {
               </span>
             </div>
 
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-3 border-b border-slate-100 gap-4">
+              <span className="text-slate-500 text-sm flex items-center gap-2">
+                <Clock size={15} />
+                Account Created
+              </span>
+              <span className="font-medium text-slate-700 text-sm text-right">
+                {formatDisplayDate(staff.createdAt)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-3 border-b border-slate-100 gap-4">
+              <span className="text-slate-500 text-sm">
+                Last Updated
+              </span>
+              <span className="font-medium text-slate-700 text-sm text-right">
+                {formatDisplayDate(staff.updatedAt)}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between py-3 gap-4">
               <span className="text-slate-500 text-sm">
                 Portal
               </span>
@@ -266,6 +563,7 @@ const StaffProfile = () => {
                 Caravan Chronicle
               </span>
             </div>
+
           </div>
 
           <p className="text-center text-sm text-slate-400 mt-8">

@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import StaffSidebar from "./components/StaffSidebar";
+import StaffSidebar from "../components/StaffSidebar";
 import {
   Search,
   Eye,
@@ -120,7 +120,7 @@ const StaffComplaints = () => {
     <div className="flex min-h-screen bg-[#f3f6fc]">
       <StaffSidebar />
 
-      <main className="flex-1 min-w-0 p-5 md:p-8">
+      <main className="ml-64 flex-1 min-w-0 p-5 md:p-8">
         <div className="max-w-7xl mx-auto">
 
           {/* Header */}
