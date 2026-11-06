@@ -319,6 +319,163 @@ const getStaffById = async (req, res) => {
 };
 
 // ============================================
+// GET STAFF PROFILE
+// GET /api/staff/profile
+// ============================================
+const getStaffProfile = async (req, res) => {
+  try {
+    const staff = await Staff.findById(req.staff.staffId)
+      .select("-password")
+      .lean();
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      staff,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid staff token. Please login again.",
+      });
+    }
+
+    console.error("Get staff profile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching staff profile.",
+    });
+  }
+};
+
+// ============================================
+// UPDATE STAFF PROFILE
+// PUT /api/staff/profile
+// ============================================
+const updateStaffProfile = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const editableFields = [
+      "phone",
+      "experience",
+      "address",
+      "city",
+      "state",
+      "pincode",
+      "status",
+    ];
+
+    const updates = {};
+
+    for (const field of editableFields) {
+      if (body[field] !== undefined) {
+        updates[field] = body[field];
+      }
+    }
+
+    if (updates.phone !== undefined) {
+      if (typeof updates.phone !== "string" || !updates.phone.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number cannot be empty.",
+        });
+      }
+
+      updates.phone = updates.phone.trim();
+    }
+
+    for (const field of ["address", "city", "state", "pincode"]) {
+      if (updates[field] !== undefined) {
+        if (typeof updates[field] !== "string") {
+          return res.status(400).json({
+            success: false,
+            message: `${field} must be a string.`,
+          });
+        }
+
+        updates[field] = updates[field].trim();
+      }
+    }
+
+    if (updates.experience !== undefined) {
+      updates.experience = updates.experience === ""
+        ? 0
+        : Number(updates.experience);
+
+      if (
+        !Number.isFinite(updates.experience) ||
+        updates.experience < 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Experience must be a non-negative number.",
+        });
+      }
+    }
+
+    if (
+      updates.status !== undefined &&
+      !["Active", "Inactive"].includes(updates.status)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status must be "Active" or "Inactive".',
+      });
+    }
+
+    if (req.file) {
+      updates.photo = `/uploads/staff/${req.file.filename}`;
+    } else if (body.removePhoto === "true") {
+      updates.photo = "";
+    }
+
+    const staff = await Staff.findByIdAndUpdate(
+      req.staff.staffId,
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+      .select("-password")
+      .lean();
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully.",
+      staff,
+    });
+  } catch (error) {
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Update staff profile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating staff profile.",
+    });
+  }
+};
+
+// ============================================
 // UPDATE STAFF
 // PUT /api/staff/:id
 // ============================================
@@ -568,6 +725,8 @@ export {
   createStaff,
   getAllStaff,
   getStaffById,
+  getStaffProfile,
+  updateStaffProfile,
   updateStaff,
   toggleStaffStatus,
   deleteStaff,

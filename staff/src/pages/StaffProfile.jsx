@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import StaffSidebar from "../components/StaffSidebar";
 import {
   User,
@@ -21,17 +21,24 @@ import {
   Trash2,
 } from "lucide-react";
 
-const StaffProfile = () => {
-  const savedStaff = JSON.parse(localStorage.getItem("staff") || "{}");
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api")
+  ? API_BASE_URL
+  : `${API_BASE_URL}/api`;
 
-  const fileInputRef = useRef(null);
+const formatDate = (date) => {
+  if (!date) return "";
+  return new Date(date).toISOString().split("T")[0];
+};
 
-  const formatDate = (date) => {
-    if (!date) return "";
-    return new Date(date).toISOString().split("T")[0];
-  };
+const toProfile = (savedStaff) => {
+  const profile = { ...savedStaff };
+  delete profile.password;
 
-  const initialProfile = {
+  return {
+    ...profile,
     _id: savedStaff._id || "",
     staffId: savedStaff.staffId || "",
     name: savedStaff.name || "",
@@ -51,24 +58,92 @@ const StaffProfile = () => {
     createdAt: savedStaff.createdAt || "",
     updatedAt: savedStaff.updatedAt || "",
   };
+};
 
+const StaffProfile = () => {
+  const photoInputRef = useRef(null);
+  const [savedStaff, setSavedStaff] = useState(() =>
+    JSON.parse(localStorage.getItem("staff") || "{}")
+  );
+
+  const [initialProfile, setInitialProfile] = useState(() =>
+    toProfile(savedStaff)
+  );
   const [staff, setStaff] = useState(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
-
-  const API_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
 
   const getPhotoUrl = (photo) => {
     if (!photo) return "";
 
     return photo.startsWith("http")
       ? photo
-      : `${API_URL}${photo.startsWith("/") ? "" : "/"}${photo}`;
+      : `${API_BASE_URL}${photo.startsWith("/") ? "" : "/"}${photo}`;
   };
 
   const photoUrl = photoPreview || getPhotoUrl(staff.photo);
+
+  useEffect(() => {
+    if (!photoPreview) return undefined;
+    return () => URL.revokeObjectURL(photoPreview);
+  }, [photoPreview]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("staffToken");
+
+    if (!token) {
+      window.location.replace("/staff/login");
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/staff/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          localStorage.removeItem("staffToken");
+          localStorage.removeItem("staff");
+          window.location.replace("/staff/login");
+          return;
+        }
+
+        if (!response.ok || data.success === false || !data.staff) {
+          throw new Error(data.message || "Unable to load your profile.");
+        }
+
+        const profile = toProfile(data.staff);
+        setSavedStaff(data.staff);
+        setInitialProfile(profile);
+        setStaff(profile);
+        localStorage.setItem("staff", JSON.stringify(data.staff));
+        setLoadError("");
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Profile load error:", error);
+          setLoadError(error.message || "Unable to load your profile.");
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadProfile();
+    return () => controller.abort();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -79,40 +154,31 @@ const StaffProfile = () => {
     }));
   };
 
-  // Select profile photo
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("Please select a valid image.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      alert("Please select a JPG, PNG, or WebP image.");
+      e.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image size should not exceed 5 MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Photo size must not exceed 2 MB.");
+      e.target.value = "";
       return;
     }
 
     setSelectedPhoto(file);
-
-    const preview = URL.createObjectURL(file);
-    setPhotoPreview(preview);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
-  // Remove selected profile photo
   const handleRemovePhoto = () => {
     setSelectedPhoto(null);
     setPhotoPreview("");
-    setStaff((prev) => ({
-      ...prev,
-      photo: "",
-    }));
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setStaff((prev) => ({ ...prev, photo: "" }));
+    if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
   // Save profile
@@ -125,68 +191,66 @@ const StaffProfile = () => {
         return;
       }
 
-      const formData = new FormData();
+      setIsSaving(true);
 
-      formData.append("name", staff.name);
-      formData.append("phone", staff.phone);
-      formData.append("gender", staff.gender);
-      formData.append("dob", staff.dob);
-      formData.append("experience", staff.experience);
-      formData.append("address", staff.address);
-      formData.append("city", staff.city);
-      formData.append("state", staff.state);
-      formData.append("pincode", staff.pincode);
+      const profileUpdates = new FormData();
+      profileUpdates.append("phone", staff.phone);
+      profileUpdates.append("experience", staff.experience);
+      profileUpdates.append("address", staff.address);
+      profileUpdates.append("city", staff.city);
+      profileUpdates.append("state", staff.state);
+      profileUpdates.append("pincode", staff.pincode);
+      profileUpdates.append("status", staff.status);
 
-      // Include photo only when a new photo is selected
       if (selectedPhoto) {
-        formData.append("photo", selectedPhoto);
-      }
-
-      // Include this only if your backend supports photo removal
-      if (!staff.photo && !selectedPhoto && savedStaff.photo) {
-        formData.append("removePhoto", "true");
+        profileUpdates.append("photo", selectedPhoto);
+      } else if (!staff.photo && savedStaff.photo) {
+        profileUpdates.append("removePhoto", "true");
       }
 
       const response = await fetch(
-        `${API_URL}/api/staff/profile`,
+        `${API_URL}/staff/profile`,
         {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
           },
-          body: formData,
+          body: profileUpdates,
         }
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem("staffToken");
+        localStorage.removeItem("staff");
+        window.location.replace("/staff/login");
+        return;
+      }
+
+      if (!response.ok || data.success === false || !data.staff) {
         throw new Error(data.message || "Unable to update profile.");
       }
 
-      const updatedStaff = {
-        ...savedStaff,
-        ...(data.staff || data.data || {}),
-      };
-
+      const updatedStaff = data.staff;
+      const profile = toProfile(updatedStaff);
+      setSavedStaff(updatedStaff);
+      setInitialProfile(profile);
+      setStaff(profile);
       localStorage.setItem("staff", JSON.stringify(updatedStaff));
-
-      setStaff({
-        ...staff,
-        ...updatedStaff,
-        dob: formatDate(updatedStaff.dob),
-      });
 
       setSelectedPhoto(null);
       setPhotoPreview("");
+      if (photoInputRef.current) photoInputRef.current.value = "";
       setIsEditing(false);
 
       alert("Profile updated successfully!");
 
-      window.location.reload();
     } catch (error) {
       console.error("Profile update error:", error);
       alert(error.message || "Something went wrong.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -194,11 +258,7 @@ const StaffProfile = () => {
     setStaff(initialProfile);
     setSelectedPhoto(null);
     setPhotoPreview("");
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-
+    if (photoInputRef.current) photoInputRef.current.value = "";
     setIsEditing(false);
   };
 
@@ -208,6 +268,7 @@ const StaffProfile = () => {
       name: "name",
       icon: User,
       type: "text",
+      readOnly: true,
     },
     {
       label: "Email Address",
@@ -234,6 +295,7 @@ const StaffProfile = () => {
       name: "gender",
       icon: User,
       type: "select",
+      readOnly: true,
       options: ["Male", "Female", "Other"],
     },
     {
@@ -241,6 +303,7 @@ const StaffProfile = () => {
       name: "dob",
       icon: Calendar,
       type: "date",
+      readOnly: true,
     },
     {
       label: "Department",
@@ -321,6 +384,16 @@ const StaffProfile = () => {
             <p className="text-slate-500 mt-2">
               Manage your personal and professional information.
             </p>
+            {isLoading && (
+              <p className="mt-2 text-sm text-blue-600">
+                Loading your profile...
+              </p>
+            )}
+            {loadError && (
+              <p role="alert" className="mt-2 text-sm text-red-600">
+                {loadError}
+              </p>
+            )}
           </div>
 
           {/* Profile Banner */}
@@ -345,27 +418,25 @@ const StaffProfile = () => {
                   <>
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 bg-blue-500 hover:bg-blue-600 p-2 rounded-full text-white border-2 border-white"
-                      title="Change profile photo"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-blue-600 p-2 text-white hover:bg-blue-700"
+                      aria-label="Change profile photo"
                     >
                       <Camera size={16} />
                     </button>
-
                     <input
-                      ref={fileInputRef}
+                      ref={photoInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       onChange={handlePhotoChange}
                       className="hidden"
                     />
-
-                    {(photoUrl || selectedPhoto) && (
+                    {photoUrl && (
                       <button
                         type="button"
                         onClick={handleRemovePhoto}
-                        className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 p-1.5 rounded-full text-white border-2 border-white"
-                        title="Remove profile photo"
+                        className="absolute -right-1 -top-1 rounded-full border-2 border-white bg-red-600 p-1.5 text-white hover:bg-red-700"
+                        aria-label="Remove profile photo"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -392,11 +463,11 @@ const StaffProfile = () => {
                 </p>
 
                 {isEditing && (
-                  <p className="text-blue-200 text-xs mt-2">
-                    Click the camera icon to change your profile photo.
-                    Maximum size: 5 MB.
+                  <p className="mt-2 text-xs text-blue-200">
+                    JPG, PNG, or WebP; maximum 2 MB.
                   </p>
                 )}
+
               </div>
 
               <div className="bg-green-500/20 text-green-100 px-4 py-2 rounded-full text-sm flex items-center gap-2">
@@ -424,6 +495,7 @@ const StaffProfile = () => {
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
+                  disabled={isLoading || isSaving}
                   className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg transition"
                 >
                   <Edit size={17} />
@@ -456,7 +528,7 @@ const StaffProfile = () => {
                           name={field.name}
                           value={staff[field.name]}
                           onChange={handleChange}
-                          disabled={!isEditing}
+                          disabled={!isEditing || field.readOnly}
                           className="w-full bg-transparent outline-none text-slate-700 disabled:cursor-not-allowed"
                         >
                           <option value="">
@@ -509,10 +581,11 @@ const StaffProfile = () => {
 
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
+                  disabled={isLoading || isSaving}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save size={17} />
-                  Save Changes
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
 
               </div>

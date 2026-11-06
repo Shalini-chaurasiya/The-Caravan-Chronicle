@@ -10,12 +10,15 @@ import {
   createStaff,
   getAllStaff,
   getStaffById,
+  getStaffProfile,
+  updateStaffProfile,
   updateStaff,
   toggleStaffStatus,
   deleteStaff,
 } from "../controllers/staffController.js";
 
 import adminMiddleware from "../middleware/adminMiddleware.js";
+import staffMiddleware from "../middleware/staffMiddleware.js";
 
 const router = express.Router();
 
@@ -72,6 +75,15 @@ const upload = multer({
 
 // Staff sign-in uses the credentials created by an admin.
 router.post("/login", staffLogin);
+
+// Staff can read and update only their own personal profile fields.
+router.get("/profile", staffMiddleware, getStaffProfile);
+router.put(
+  "/profile",
+  staffMiddleware,
+  upload.single("photo"),
+  updateStaffProfile
+);
 
 // All routes below require admin authentication
 router.use(adminMiddleware);
