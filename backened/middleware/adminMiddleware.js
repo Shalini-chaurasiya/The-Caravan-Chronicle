@@ -44,6 +44,13 @@ const adminMiddleware = (req, res, next) => {
     next();
 
   } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Admin session has expired. Please login again.",
+      });
+    }
+
     console.error("Admin Middleware Error:", error);
 
     return res.status(401).json({
