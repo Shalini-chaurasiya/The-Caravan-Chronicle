@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import StaffSidebar from "../components/StaffSidebar";
 import {
   ClipboardList,
@@ -5,90 +6,141 @@ import {
   LoaderCircle,
   CheckCircle2,
   Bell,
-  Search,
   ArrowUpRight,
   MapPin,
 } from "lucide-react";
 
-const StaffDashboard = () => {
-  const staff = JSON.parse(localStorage.getItem("staff") || "{}");
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api")
+  ? API_BASE_URL
+  : `${API_BASE_URL}/api`;
 
-  const stats = [
+const formatDate = (date) => {
+  if (!date) return "Not available";
+
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) return "Not available";
+
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const getPhotoUrl = (photo) => {
+  if (!photo) return "";
+  if (/^https?:\/\//i.test(photo)) return photo;
+  return `${API_BASE_URL}${photo.startsWith("/") ? "" : "/"}${photo}`;
+};
+
+const StaffDashboard = () => {
+  const [dashboard, setDashboard] = useState({
+    staff: JSON.parse(localStorage.getItem("staff") || "{}"),
+    stats: { total: 0, pending: 0, inProgress: 0, resolved: 0 },
+    recentComplaints: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("staffToken");
+
+    if (!token) {
+      window.location.replace("/staff/login");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    const loadDashboard = async () => {
+      try {
+        const response = await fetch(`${API_URL}/staff/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          localStorage.removeItem("staffToken");
+          localStorage.removeItem("staff");
+          window.location.replace("/staff/login");
+          return;
+        }
+
+        if (
+          !response.ok ||
+          data.success === false ||
+          !data.staff ||
+          !data.stats ||
+          !Array.isArray(data.recentComplaints)
+        ) {
+          throw new Error(data.message || "Unable to load your dashboard.");
+        }
+
+        setDashboard(data);
+        localStorage.setItem("staff", JSON.stringify(data.staff));
+        setLoadError("");
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Load staff dashboard error:", error);
+          setLoadError(error.message || "Unable to load your dashboard.");
+        }
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    };
+
+    loadDashboard();
+    return () => controller.abort();
+  }, []);
+
+  const { staff, stats, recentComplaints } = dashboard;
+
+  const statCards = [
     {
       title: "Assigned Complaints",
-      value: "24",
+      value: stats.total,
       subtitle: "Total assigned to you",
       icon: ClipboardList,
       color: "bg-blue-100 text-blue-600",
     },
     {
       title: "Pending",
-      value: "08",
+      value: stats.pending,
       subtitle: "Awaiting your action",
       icon: Clock,
       color: "bg-orange-100 text-orange-600",
     },
     {
       title: "In Progress",
-      value: "10",
+      value: stats.inProgress,
       subtitle: "Currently being handled",
       icon: LoaderCircle,
       color: "bg-purple-100 text-purple-600",
     },
     {
       title: "Resolved",
-      value: "06",
+      value: stats.resolved,
       subtitle: "Successfully completed",
       icon: CheckCircle2,
       color: "bg-green-100 text-green-600",
     },
   ];
 
-  const complaints = [
-    {
-      id: "CMP1024",
-      subject: "Garbage collection issue",
-      department: "Sanitation",
-      location: "Civil Lines",
-      date: "05 Nov 2026",
-      status: "Pending",
-    },
-    {
-      id: "CMP1025",
-      subject: "Street light not working",
-      department: "Electricity",
-      location: "George Town",
-      date: "04 Nov 2026",
-      status: "In Progress",
-    },
-    {
-      id: "CMP1026",
-      subject: "Water leakage",
-      department: "Water Supply",
-      location: "Tagore Town",
-      date: "03 Nov 2026",
-      status: "Resolved",
-    },
-    {
-      id: "CMP1027",
-      subject: "Damaged road",
-      department: "Road Maintenance",
-      location: "Katra",
-      date: "02 Nov 2026",
-      status: "Pending",
-    },
-  ];
-
   const getStatusStyle = (status) => {
-    if (status === "Resolved") {
-      return "bg-green-100 text-green-700";
+    switch (status) {
+      case "Resolved":
+        return "bg-green-100 text-green-700";
+      case "In Progress":
+        return "bg-purple-100 text-purple-700";
+      case "Rejected":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-orange-100 text-orange-700";
     }
-
-    if (status === "In Progress") {
-      return "bg-purple-100 text-purple-700";
-    }
-
-    return "bg-orange-100 text-orange-700";
   };
 
   return (
@@ -116,7 +168,15 @@ const StaffDashboard = () => {
 
             <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
-                {(staff.name || "S").charAt(0).toUpperCase()}
+                {staff.photo ? (
+                  <img
+                    src={getPhotoUrl(staff.photo)}
+                    alt=""
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  (staff.name || "S").charAt(0).toUpperCase()
+                )}
               </div>
 
               <div>
@@ -131,6 +191,12 @@ const StaffDashboard = () => {
           </div>
         </div>
 
+        {loadError && (
+          <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {loadError}
+          </div>
+        )}
+
         {/* Welcome Banner */}
         <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#101c3a] to-blue-700 p-7 text-white shadow-lg">
           <div className="flex flex-wrap items-center justify-between gap-5">
@@ -140,7 +206,7 @@ const StaffDashboard = () => {
               </p>
 
               <h2 className="text-2xl font-bold">
-                Hello, {staff.name || "Staff Member"} 👋
+                Hello, {staff.name || "Staff Member"}
               </h2>
 
               <p className="mt-2 max-w-xl text-sm text-blue-100">
@@ -157,7 +223,7 @@ const StaffDashboard = () => {
 
         {/* Statistics */}
         <div className="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => {
+          {statCards.map((item) => {
             const Icon = item.icon;
 
             return (
@@ -222,21 +288,21 @@ const StaffDashboard = () => {
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {complaints.map((complaint) => (
+                {recentComplaints.map((complaint) => (
                   <tr
-                    key={complaint.id}
+                    key={complaint._id}
                     className="transition hover:bg-slate-50"
                   >
                     <td className="px-6 py-4 text-sm font-semibold text-blue-600">
-                      {complaint.id}
+                      {complaint._id}
                     </td>
 
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-[#101c3a]">
-                        {complaint.subject}
+                        {complaint.complaintType}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {complaint.department}
+                        {complaint.assignedStaff?.department || staff.department || "Not assigned"}
                       </p>
                     </td>
 
@@ -248,7 +314,7 @@ const StaffDashboard = () => {
                     </td>
 
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {complaint.date}
+                      {formatDate(complaint.createdAt)}
                     </td>
 
                     <td className="px-6 py-4">
@@ -262,6 +328,24 @@ const StaffDashboard = () => {
                     </td>
                   </tr>
                 ))}
+
+                {!isLoading && recentComplaints.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-10 text-center text-sm text-slate-500">
+                      {loadError
+                        ? "Dashboard data could not be loaded."
+                        : "No complaints have been assigned to you yet."}
+                    </td>
+                  </tr>
+                )}
+
+                {isLoading && (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-10 text-center text-sm text-slate-500">
+                      Loading dashboard...
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

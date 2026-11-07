@@ -320,6 +320,66 @@ const getStaffById = async (req, res) => {
   }
 };
 
+// GET /api/staff/dashboard
+const getStaffDashboard = async (req, res) => {
+  try {
+    const [staff, statusCounts, recentComplaints] = await Promise.all([
+      Staff.findById(req.staff.staffId)
+        .select("-password")
+        .lean(),
+      Complaint.aggregate([
+        { $match: { assignedStaff: new mongoose.Types.ObjectId(req.staff.staffId) } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      Complaint.find({ assignedStaff: req.staff.staffId })
+        .populate("assignedStaff", "department")
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
+
+    if (!staff) {
+      return res.status(404).json({
+        success: false,
+        message: "Staff member not found.",
+      });
+    }
+
+    const counts = Object.fromEntries(
+      statusCounts.map(({ _id, count }) => [_id, count])
+    );
+    const total = Object.values(counts).reduce(
+      (sum, count) => sum + count,
+      0
+    );
+
+    return res.status(200).json({
+      success: true,
+      staff,
+      stats: {
+        total,
+        pending: counts.Pending || 0,
+        inProgress: counts["In Progress"] || 0,
+        resolved: counts.Resolved || 0,
+      },
+      recentComplaints,
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid staff token. Please log in again.",
+      });
+    }
+
+    console.error("Get staff dashboard error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching staff dashboard.",
+    });
+  }
+};
+
 // GET /api/staff/complaints
 const getAssignedComplaints = async (req, res) => {
   try {
@@ -892,6 +952,7 @@ export {
   createStaff,
   getAllStaff,
   getStaffById,
+  getStaffDashboard,
   getAssignedComplaints,
   updateAssignedComplaintStatus,
   getStaffProfile,

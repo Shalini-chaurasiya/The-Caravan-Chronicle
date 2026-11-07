@@ -10,6 +10,7 @@ import {
   createStaff,
   getAllStaff,
   getStaffById,
+  getStaffDashboard,
   getAssignedComplaints,
   updateAssignedComplaintStatus,
   getStaffProfile,
@@ -86,6 +87,7 @@ router.put(
   upload.single("photo"),
   updateStaffProfile
 );
+router.get("/dashboard", staffMiddleware, getStaffDashboard);
 router.get("/complaints", staffMiddleware, getAssignedComplaints);
 router.patch(
   "/complaints/:id/status",
