@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import { randomBytes } from "crypto";
 import Staff from "../models/Staff.js";
 import Complaint from "../models/Complaint.js";
+import SLASettings from "../models/SLASettings.js";
 
 // ============================================
 // STAFF LOGIN
@@ -314,6 +316,171 @@ const getStaffById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while fetching staff details.",
+    });
+  }
+};
+
+// GET /api/staff/complaints
+const getAssignedComplaints = async (req, res) => {
+  try {
+    const complaints = await Complaint.find({
+      assignedStaff: req.staff.staffId,
+    })
+      .populate("user", "name email contact address profileImage")
+      .populate(
+        "assignedStaff",
+        "staffId name email phone department role experience status photo"
+      )
+      .sort({ createdAt: -1 })
+      .lean();
+    const departments = [
+      ...new Set(
+        complaints
+          .map((complaint) => complaint.assignedStaff?.department)
+          .filter(Boolean)
+      ),
+    ];
+    const slaSettings = await SLASettings.find({
+      status: "Active",
+      department: { $in: departments },
+    })
+      .select("department defaultSLAHours warningBeforeHours")
+      .lean();
+    const slaByDepartment = new Map(
+      slaSettings.map((setting) => [setting.department, setting])
+    );
+    const now = Date.now();
+
+    const complaintsWithPriority = complaints.map((complaint) => {
+      const setting = slaByDepartment.get(
+        complaint.assignedStaff?.department
+      );
+
+      if (!setting) {
+        return {
+          ...complaint,
+          priority: "Not configured",
+          slaDueAt: null,
+        };
+      }
+
+      const slaDueAt = new Date(
+        new Date(complaint.createdAt).getTime() +
+          setting.defaultSLAHours * 60 * 60 * 1000
+      );
+      const remainingHours = (slaDueAt.getTime() - now) / (60 * 60 * 1000);
+      const priority =
+        remainingHours < 0
+          ? "High"
+          : remainingHours <= setting.warningBeforeHours
+            ? "Medium"
+            : "Low";
+
+      return {
+        ...complaint,
+        priority,
+        slaDueAt,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: complaintsWithPriority.length,
+      complaints: complaintsWithPriority,
+    });
+  } catch (error) {
+    console.error("Get assigned complaints error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching assigned complaints.",
+    });
+  }
+};
+
+// PATCH /api/staff/complaints/:id/status
+const updateAssignedComplaintStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const allowedStatuses = ["Pending", "In Progress", "Resolved", "Rejected"];
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint status.",
+        allowedStatuses,
+      });
+    }
+
+    const complaint = await Complaint.findOneAndUpdate(
+      { _id: id, assignedStaff: req.staff.staffId },
+      { $set: { status } },
+      { new: true, runValidators: true }
+    )
+      .populate("user", "name email contact address profileImage")
+      .populate(
+        "assignedStaff",
+        "staffId name email phone department role experience status photo"
+      )
+      .lean();
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned complaint not found.",
+      });
+    }
+
+    const staff = await Staff.findById(req.staff.staffId)
+      .select("department")
+      .lean();
+    const setting = staff
+      ? await SLASettings.findOne({
+          department: staff.department,
+          status: "Active",
+        })
+          .select("defaultSLAHours warningBeforeHours")
+          .lean()
+      : null;
+    let priority = "Not configured";
+    let slaDueAt = null;
+
+    if (setting) {
+      slaDueAt = new Date(
+        new Date(complaint.createdAt).getTime() +
+          setting.defaultSLAHours * 60 * 60 * 1000
+      );
+      const remainingHours =
+        (slaDueAt.getTime() - Date.now()) / (60 * 60 * 1000);
+      priority =
+        remainingHours < 0
+          ? "High"
+          : remainingHours <= setting.warningBeforeHours
+            ? "Medium"
+            : "Low";
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Complaint status updated successfully.",
+      complaint: {
+        ...complaint,
+        priority,
+        slaDueAt,
+      },
+    });
+  } catch (error) {
+    console.error("Update assigned complaint status error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating complaint status.",
     });
   }
 };
@@ -725,6 +892,8 @@ export {
   createStaff,
   getAllStaff,
   getStaffById,
+  getAssignedComplaints,
+  updateAssignedComplaintStatus,
   getStaffProfile,
   updateStaffProfile,
   updateStaff,

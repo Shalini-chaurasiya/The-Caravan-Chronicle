@@ -10,6 +10,8 @@ import {
   createStaff,
   getAllStaff,
   getStaffById,
+  getAssignedComplaints,
+  updateAssignedComplaintStatus,
   getStaffProfile,
   updateStaffProfile,
   updateStaff,
@@ -83,6 +85,12 @@ router.put(
   staffMiddleware,
   upload.single("photo"),
   updateStaffProfile
+);
+router.get("/complaints", staffMiddleware, getAssignedComplaints);
+router.patch(
+  "/complaints/:id/status",
+  staffMiddleware,
+  updateAssignedComplaintStatus
 );
 
 // All routes below require admin authentication
