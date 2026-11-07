@@ -1,0 +1,568 @@
+.civic-reveal {
+  animation: civic-fade-up 650ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.civic-delay-1 {
+  animation-delay: 90ms;
+}
+
+.civic-delay-2 {
+  animation-delay: 170ms;
+}
+
+.civic-delay-3 {
+  animation-delay: 250ms;
+}
+
+.civic-delay-4 {
+  animation-delay: 330ms;
+}
+
+.civic-hero-image {
+  animation: civic-image-arrive 1.1s ease-out both, civic-image-drift 24s ease-in-out 1.1s infinite alternate;
+}
+
+@keyframes civic-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.civic-journey-title > span > span {
+  display: inline-block;
+  animation: civic-word-arrive 650ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.civic-journey-title > span > span:nth-child(1) {
+  animation-delay: 80ms;
+}
+
+.civic-journey-title > span > span:nth-child(2) {
+  animation-delay: 180ms;
+}
+
+.civic-journey-title > span > span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+.civic-journey-title > span > span:nth-child(4) {
+  animation-delay: 380ms;
+}
+
+.civic-journey-title > span > span:nth-child(5) {
+  animation-delay: 480ms;
+}
+
+.civic-journey-title > span > span:nth-child(6) {
+  animation-delay: 580ms;
+}
+
+.civic-journey-title > span > span:nth-child(7) {
+  animation-delay: 680ms;
+}
+
+.civic-journey-description {
+  animation: civic-fade-up 700ms 720ms both;
+}
+
+.civic-journey-accent {
+  position: relative;
+  overflow: hidden;
+}
+
+.civic-journey-accent::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 90%), transparent);
+  content: "";
+  animation: civic-accent-sweep 2.8s ease-in-out 900ms infinite;
+}
+
+@keyframes civic-word-arrive {
+  from {
+    filter: blur(5px);
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes civic-accent-sweep {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(110%);
+  }
+}
+
+@keyframes civic-image-arrive {
+  from {
+    opacity: 0.65;
+    transform: scale(1.035);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes civic-image-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.045);
+  }
+}
+
+.civic-action-icon,
+.civic-category-icon {
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 260ms ease;
+}
+
+.civic-action-icon {
+  animation: civic-icon-bob 2.6s ease-in-out infinite;
+}
+
+.civic-category-icon {
+  animation: civic-icon-bob 3s ease-in-out infinite;
+}
+
+.civic-action-card:nth-child(2) .civic-action-icon,
+.civic-category-card:nth-child(2) .civic-category-icon {
+  animation-delay: 400ms;
+}
+
+.civic-action-card:nth-child(3) .civic-action-icon,
+.civic-category-card:nth-child(3) .civic-category-icon {
+  animation-delay: 800ms;
+}
+
+.civic-category-card:nth-child(4) .civic-category-icon {
+  animation-delay: 200ms;
+}
+
+.civic-category-card:nth-child(5) .civic-category-icon {
+  animation-delay: 600ms;
+}
+
+.civic-category-card:nth-child(6) .civic-category-icon {
+  animation-delay: 1s;
+}
+
+.civic-category-card:nth-child(7) .civic-category-icon {
+  animation-delay: 300ms;
+}
+
+.civic-category-card:nth-child(8) .civic-category-icon {
+  animation-delay: 700ms;
+}
+
+.civic-category-card:nth-child(9) .civic-category-icon {
+  animation-delay: 1.1s;
+}
+
+.civic-category-card:nth-child(10) .civic-category-icon {
+  animation-delay: 500ms;
+}
+
+@keyframes civic-icon-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.civic-journey-grid {
+  isolation: isolate;
+  padding-left: 2.75rem;
+}
+
+.civic-complaint-route {
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  left: 1rem;
+  width: 1.5rem;
+}
+
+.civic-complaint-route-line {
+  position: absolute;
+  top: 5%;
+  bottom: 5%;
+  left: 50%;
+  width: 2px;
+  background: linear-gradient(180deg, #93c5fd, #a5b4fc, #5eead4);
+  transform: translateX(-50%);
+}
+
+.civic-route-stage {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  box-shadow: 0 0 0 1px #bfdbfe;
+  transform: translate(-50%, -50%);
+}
+
+.civic-route-stage-1 {
+  top: 12%;
+}
+
+.civic-route-stage-2 {
+  top: 50%;
+  background: #ccfbf1;
+  color: #0f766e;
+  box-shadow: 0 0 0 1px #99f6e4;
+}
+
+.civic-route-stage-3 {
+  top: 88%;
+  background: #dcfce7;
+  color: #15803d;
+  box-shadow: 0 0 0 1px #bbf7d0;
+}
+
+.civic-complaint-ticket {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid #93c5fd;
+  border-radius: 0.65rem;
+  background: white;
+  padding: 0.3rem 0.45rem;
+  color: #1d4ed8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgb(15 23 42 / 12%);
+  animation: civic-complaint-travel-mobile 8s ease-in-out infinite;
+  transform: translate(-50%, -50%);
+}
+
+.civic-complaint-ticket > span {
+  display: none;
+}
+
+.civic-complaint-ticket {
+  width: 1.75rem;
+  height: 1.75rem;
+  justify-content: center;
+  padding: 0;
+}
+
+@keyframes civic-complaint-travel-mobile {
+  0%,
+  10% {
+    top: 12%;
+  }
+
+  38%,
+  48% {
+    top: 50%;
+  }
+
+  78%,
+  100% {
+    top: 88%;
+  }
+}
+
+.civic-person-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  background: white;
+  box-shadow: 0 8px 26px rgb(15 23 42 / 4%);
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+}
+
+.civic-person-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 34px rgb(15 23 42 / 10%);
+}
+
+.civic-person-art {
+  position: relative;
+  display: flex;
+  height: 190px;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 100%, rgb(255 255 255 / 90%) 0 28%, transparent 29%), linear-gradient(145deg, #eff6ff, #dbeafe);
+}
+
+.civic-person-teal .civic-person-art {
+  background: radial-gradient(ellipse at 50% 100%, rgb(255 255 255 / 90%) 0 28%, transparent 29%), linear-gradient(145deg, #f0fdfa, #ccfbf1);
+}
+
+.civic-person-violet .civic-person-art {
+  background: radial-gradient(ellipse at 50% 100%, rgb(255 255 255 / 90%) 0 28%, transparent 29%), linear-gradient(145deg, #f5f3ff, #ede9fe);
+}
+
+.civic-person-art img {
+  position: relative;
+  z-index: 1;
+  width: 138px;
+  height: 166px;
+  object-fit: contain;
+  transform-origin: center bottom;
+  animation: civic-character-idle 3.2s ease-in-out infinite;
+}
+
+.civic-person-teal .civic-person-art img {
+  animation-delay: 400ms;
+}
+
+.civic-person-violet .civic-person-art img {
+  animation-delay: 800ms;
+}
+
+.civic-person-number {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 2;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 90%);
+  border-radius: 0.7rem;
+  background: rgb(255 255 255 / 80%);
+  color: #1d4ed8;
+  font-size: 0.7rem;
+  font-weight: 800;
+  backdrop-filter: blur(6px);
+}
+
+.civic-person-teal .civic-person-number {
+  color: #0f766e;
+}
+
+.civic-person-violet .civic-person-number {
+  color: #6d28d9;
+}
+
+@keyframes civic-character-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.civic-action-card:hover .civic-action-icon,
+.civic-action-card:focus-visible .civic-action-icon {
+  animation: none;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 12%);
+  transform: translateY(-3px) rotate(-5deg) scale(1.05);
+}
+
+.civic-category-card:hover .civic-category-icon,
+.civic-category-card:focus-visible .civic-category-icon {
+  animation: none;
+  box-shadow: 0 6px 14px rgb(15 23 42 / 10%);
+  transform: translateY(-2px) scale(1.08);
+}
+
+.civic-animation {
+  isolation: isolate;
+}
+
+.civic-skyline {
+  object-position: center 54%;
+}
+
+.civic-vehicle {
+  animation: civic-vehicle-travel 8s linear infinite;
+  left: 0;
+  transform: translateX(0);
+}
+
+.civic-truck {
+  display: block;
+  filter: drop-shadow(0 5px 5px rgb(15 23 42 / 12%));
+  height: auto;
+  width: 125px;
+}
+
+@keyframes civic-vehicle-travel {
+  from {
+    left: 0;
+    transform: translateX(0);
+  }
+
+  to {
+    left: 100%;
+    transform: translateX(-100%);
+  }
+}
+
+@media (min-width: 640px) {
+  .civic-truck {
+    width: 150px;
+  }
+}
+
+@media (min-width: 768px) {
+  .civic-journey-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-top: 3rem;
+    padding-left: 0;
+  }
+
+  .civic-complaint-route {
+    top: 0.95rem;
+    right: 16.66%;
+    bottom: auto;
+    left: 16.66%;
+    width: auto;
+    height: 1.5rem;
+  }
+
+  .civic-complaint-route-line {
+    top: 50%;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: auto;
+    height: 2px;
+    background: linear-gradient(90deg, #93c5fd, #a5b4fc, #5eead4);
+    transform: translateY(-50%);
+  }
+
+  .civic-route-stage-1 {
+    top: 50%;
+    left: 0;
+  }
+
+  .civic-route-stage-2 {
+    top: 50%;
+    left: 50%;
+  }
+
+  .civic-route-stage-3 {
+    top: 50%;
+    left: 100%;
+  }
+
+  .civic-complaint-ticket {
+    top: 50%;
+    left: 0;
+    width: auto;
+    height: auto;
+    justify-content: flex-start;
+    padding: 0.3rem 0.45rem;
+    animation-name: civic-complaint-travel-desktop;
+    transform: translate(0, -50%);
+  }
+
+  .civic-complaint-ticket > span {
+    display: inline;
+  }
+}
+
+@keyframes civic-complaint-travel-desktop {
+  0%,
+  10% {
+    left: 0;
+    transform: translate(0, -50%);
+  }
+
+  40%,
+  50% {
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  90%,
+  100% {
+    left: 100%;
+    transform: translate(-100%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civic-reveal,
+  .civic-hero-image,
+  .civic-journey-title > span > span,
+  .civic-journey-description,
+  .civic-journey-accent::after {
+    animation: none;
+  }
+
+  .civic-action-icon,
+  .civic-category-icon {
+    animation: none;
+  }
+
+  .civic-action-card:hover .civic-action-icon,
+  .civic-action-card:focus-visible .civic-action-icon,
+  .civic-category-card:hover .civic-category-icon,
+  .civic-category-card:focus-visible .civic-category-icon {
+    transform: none;
+  }
+
+  .civic-person-card:hover {
+    transform: none;
+  }
+
+  .civic-complaint-ticket {
+    animation-duration: 18s;
+  }
+
+  .civic-person-art img {
+    animation-name: civic-character-idle-reduced;
+    animation-duration: 12s;
+  }
+
+  .civic-vehicle {
+    animation-duration: 18s;
+  }
+
+  @keyframes civic-character-idle-reduced {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+}

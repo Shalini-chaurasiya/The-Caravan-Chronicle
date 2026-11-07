@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 130" fill="none">
+  <ellipse cx="110" cy="112" rx="98" ry="10" fill="#0F172A" fill-opacity=".16"/>
+  <path d="M17 37a10 10 0 0 1 10-10h112v63H17V37Z" fill="#16835D"/>
+  <path d="M139 46h31l35 34v10h-66V46Z" fill="#F8FAFC"/>
+  <path d="M147 53h19l25 24h-44V53Z" fill="#BAE6FD"/>
+  <path d="M14 43a8 8 0 0 1 8-8h5v55h-5a8 8 0 0 1-8-8V43Z" fill="#0F6848"/>
+  <path d="M28 34h18v7H28zM84 34h18v7H84z" fill="#0F6848"/>
+  <path d="M27 58h101v3H27z" fill="#37A878"/>
+  <text x="79" y="78" fill="#fff" font-family="Arial,sans-serif" font-size="15" font-weight="700" text-anchor="middle">CITY CARE</text>
+  <path d="M121 49h7v7h-7z" fill="#FBBF24"/>
+  <path d="M124.5 46v13M118 52.5h13" stroke="#fff" stroke-linecap="round" stroke-width="2.5"/>
+  <path d="M158 41h14l-7-11h-7z" fill="#1D4ED8"/>
+  <rect x="158" y="27" width="14" height="5" rx="2.5" fill="#60A5FA"/>
+  <circle cx="64" cy="91" r="18" fill="#1E293B"/>
+  <circle cx="64" cy="91" r="8" fill="#CBD5E1"/>
+  <circle cx="175" cy="91" r="18" fill="#1E293B"/>
+  <circle cx="175" cy="91" r="8" fill="#CBD5E1"/>
+  <path d="M198 82h7v8h-7z" fill="#F59E0B"/>
+  <path d="M16 79h7v8h-7z" fill="#EF4444"/>
+</svg>

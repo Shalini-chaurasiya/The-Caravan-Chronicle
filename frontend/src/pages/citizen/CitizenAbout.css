@@ -1,0 +1,536 @@
+.about-enter,
+.about-image-frame {
+  animation: about-rise-in 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.about-image-frame {
+  animation-delay: 120ms;
+}
+
+.about-image {
+  animation: about-image-drift 18s ease-in-out infinite alternate;
+  transition: transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.about-image-frame:hover .about-image {
+  animation: none;
+  transform: scale(1.035);
+}
+
+.about-heading-accent {
+  animation: about-accent-pulse 2.8s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+.about-ripple-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+.about-ripple-panel::before,
+.about-ripple-panel::after {
+  position: absolute;
+  z-index: -1;
+  width: 18rem;
+  height: 18rem;
+  border: 1px solid rgb(125 211 252 / 12%);
+  border-radius: 9999px;
+  content: "";
+  pointer-events: none;
+}
+
+.about-ripple-panel::before {
+  top: -13rem;
+  left: -5rem;
+  animation: about-ripple-orbit 16s linear infinite;
+}
+
+.about-ripple-panel::after {
+  right: -9rem;
+  bottom: -14rem;
+  width: 24rem;
+  height: 24rem;
+  animation: about-ripple-orbit 22s linear infinite reverse;
+}
+
+.about-ripple-journey {
+  position: relative;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.about-ripple-stop {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+.about-ripple-icon {
+  display: flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.4rem;
+  border: 1px solid rgb(186 230 253 / 30%);
+  border-radius: 1.1rem;
+  background: rgb(255 255 255 / 10%);
+  color: #bae6fd;
+  animation: about-ripple-icon 3s ease-in-out infinite;
+}
+
+.about-ripple-stop:nth-child(3) .about-ripple-icon {
+  animation-delay: 700ms;
+}
+
+.about-ripple-stop:nth-child(4) .about-ripple-icon {
+  animation-delay: 1.4s;
+}
+
+.about-ripple-track {
+  display: none;
+}
+
+@keyframes about-ripple-icon {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(125 211 252 / 0%);
+    transform: translateY(0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgb(125 211 252 / 8%);
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes about-ripple-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.about-guide-character {
+  position: relative;
+  animation: about-guide-float 3.8s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.about-guide-character.is-speaking img {
+  animation: about-guide-talk 280ms ease-in-out infinite alternate;
+  transform-origin: center bottom;
+}
+
+.about-guide-speaking {
+  position: absolute;
+  top: 20%;
+  right: 3%;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.about-guide-character.is-speaking .about-guide-speaking {
+  opacity: 1;
+}
+
+.about-guide-speaking span {
+  width: 3px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #2563eb;
+  animation: about-guide-wave 420ms ease-in-out infinite alternate;
+}
+
+.about-guide-speaking span:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.about-guide-speaking span:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+.about-guide-bubble {
+  animation: about-guide-speech 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  transform-origin: left center;
+}
+
+.about-guide-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #3b82f6;
+  animation: about-guide-dot 1.2s ease-in-out infinite;
+}
+
+.about-guide-dots {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.about-guide-dots.is-visible {
+  opacity: 1;
+}
+
+.about-guide-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  background: #2563eb;
+  vertical-align: text-bottom;
+  animation: about-guide-caret-blink 800ms steps(2, start) infinite;
+}
+
+.about-guide-dots span:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.about-guide-dots span:nth-child(3) {
+  animation-delay: 320ms;
+}
+
+.about-guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  border: 1px solid rgb(226 232 240 / 85%);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 80%);
+  padding: 1rem;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.about-guide-step:hover {
+  box-shadow: 0 10px 24px rgb(15 23 42 / 7%);
+  transform: translateY(-3px);
+}
+
+.about-guide-step.is-active {
+  border-color: #93c5fd;
+  background: white;
+  box-shadow: 0 8px 20px rgb(37 99 235 / 9%);
+}
+
+.about-guide-step-number {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  place-items: center;
+  border-radius: 0.65rem;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.about-guide-step:nth-child(2) .about-guide-step-number {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.about-guide-step:nth-child(3) .about-guide-step-number {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+@keyframes about-guide-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes about-guide-speech {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes about-guide-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  @keyframes about-guide-talk {
+    from {
+      transform: translateY(0) rotate(-0.4deg);
+    }
+
+    to {
+      transform: translateY(-2px) rotate(0.4deg);
+    }
+  }
+
+  @keyframes about-guide-wave {
+    from {
+      transform: scaleY(0.45);
+    }
+
+    to {
+      transform: scaleY(1.3);
+    }
+  }
+
+  @keyframes about-guide-caret-blink {
+    to {
+      visibility: hidden;
+    }
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.about-stagger > * {
+  animation: about-rise-in 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.about-stagger > :nth-child(2) {
+  animation-delay: 90ms;
+}
+
+.about-stagger > :nth-child(3) {
+  animation-delay: 180ms;
+}
+
+.about-stagger > :nth-child(4) {
+  animation-delay: 270ms;
+}
+
+.about-stagger > :nth-child(5) {
+  animation-delay: 360ms;
+}
+
+.about-card,
+.about-feature,
+.about-step {
+  transition: transform 260ms ease, box-shadow 260ms ease;
+}
+
+.about-card:hover,
+.about-feature:hover,
+.about-step:hover {
+  transform: translateY(-4px);
+}
+
+.about-card:hover {
+  box-shadow: 0 14px 30px rgb(15 23 42 / 9%);
+}
+
+.about-card-icon,
+.about-feature-icon,
+.about-step-icon {
+  animation: about-icon-float 3s ease-in-out infinite;
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 260ms ease;
+}
+
+.about-card:nth-child(2) .about-card-icon,
+.about-feature:nth-child(2) .about-feature-icon,
+.about-step:nth-child(2) .about-step-icon {
+  animation-delay: 350ms;
+}
+
+.about-card:nth-child(3) .about-card-icon,
+.about-feature:nth-child(3) .about-feature-icon,
+.about-step:nth-child(3) .about-step-icon {
+  animation-delay: 700ms;
+}
+
+.about-feature:nth-child(4) .about-feature-icon,
+.about-step:nth-child(4) .about-step-icon {
+  animation-delay: 1.05s;
+}
+
+.about-feature:nth-child(5) .about-feature-icon {
+  animation-delay: 1.4s;
+}
+
+.about-card:hover .about-card-icon,
+.about-feature:hover .about-feature-icon,
+.about-step:hover .about-step-icon {
+  animation: none;
+  box-shadow: 0 8px 18px rgb(15 23 42 / 12%);
+  transform: translateY(-3px) scale(1.06);
+}
+
+@keyframes about-image-drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.07);
+  }
+}
+
+@keyframes about-accent-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scaleX(0.78);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes about-icon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes about-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 640px) {
+  .about-ripple-journey {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .about-ripple-track {
+    position: absolute;
+    top: 1.7rem;
+    right: 16.66%;
+    left: 16.66%;
+    display: block;
+    height: 2px;
+  }
+
+  .about-ripple-line {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgb(125 211 252 / 45%), transparent);
+  }
+
+  .about-ripple-signal {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #7dd3fc;
+    box-shadow: 0 0 14px 4px rgb(125 211 252 / 55%);
+    animation: about-ripple-travel 4s ease-in-out infinite;
+  }
+}
+
+@keyframes about-ripple-travel {
+  0% {
+    left: 0;
+    opacity: 0;
+  }
+
+  12%,
+  88% {
+    opacity: 1;
+  }
+
+  100% {
+    left: calc(100% - 8px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) and (min-width: 640px) {
+  .about-ripple-signal {
+    animation: none;
+    left: calc(50% - 4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-enter,
+  .about-image-frame,
+  .about-stagger > *,
+  .about-image,
+  .about-heading-accent,
+  .about-card-icon,
+  .about-feature-icon,
+  .about-step-icon,
+  .about-guide-character,
+  .about-guide-character.is-speaking img,
+  .about-guide-bubble,
+  .about-guide-dots span,
+  .about-guide-speaking span,
+  .about-guide-caret,
+  .about-ripple-panel::before,
+  .about-ripple-panel::after,
+  .about-ripple-icon {
+    animation: none;
+  }
+
+  .about-card,
+  .about-feature,
+  .about-step,
+  .about-image,
+  .about-card-icon,
+  .about-feature-icon,
+  .about-step-icon {
+    transition: none;
+  }
+
+  .about-guide-step {
+    transition: none;
+  }
+
+  .about-guide-speaking {
+    transition: none;
+  }
+
+  .about-card:hover,
+  .about-feature:hover,
+  .about-step:hover,
+  .about-guide-step:hover,
+  .about-image-frame:hover .about-image,
+  .about-card:hover .about-card-icon,
+  .about-feature:hover .about-feature-icon,
+  .about-step:hover .about-step-icon {
+    transform: none;
+  }
+
+  .about-guide-step.is-active {
+    transform: none;
+  }
+}
