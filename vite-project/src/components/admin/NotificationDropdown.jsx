@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Bell, X } from "lucide-react";
 
 const API_BASE_URL = (
   import.meta.env.VITE_API_URL || "http://localhost:3000"
@@ -41,10 +42,12 @@ const notificationColors = {
   sla_exceeded: "bg-amber-500",
 };
 
-const NotificationDropdown = () => {
+const NotificationDropdown = ({ enablePopup = false }) => {
   const navigate = useNavigate();
+  const seenNotificationIds = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [popupNotification, setPopupNotification] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -73,7 +76,24 @@ const NotificationDropdown = () => {
         }
 
         if (active) {
-          setNotifications(data.notifications || []);
+          const nextNotifications = data.notifications || [];
+          const previousIds = seenNotificationIds.current;
+          if (previousIds === null) {
+            seenNotificationIds.current = new Set(
+              nextNotifications.map((notification) => notification._id)
+            );
+          } else {
+            const newNotifications = nextNotifications.filter(
+              (notification) => !previousIds.has(notification._id)
+            );
+            seenNotificationIds.current = new Set(
+              nextNotifications.map((notification) => notification._id)
+            );
+            if (enablePopup && newNotifications.length > 0) {
+              setPopupNotification(newNotifications[0]);
+            }
+          }
+          setNotifications(nextNotifications);
           setUnreadCount(data.unreadCount || 0);
           setError("");
         }
@@ -105,7 +125,7 @@ const NotificationDropdown = () => {
 
       window.clearInterval(refreshInterval);
     };
-  }, [isOpen]);
+  }, [enablePopup, isOpen]);
 
   const markAsRead = async (notificationId) => {
     try {
@@ -151,6 +171,12 @@ const NotificationDropdown = () => {
       navigate(
         `/admin/complaints/${notification.complaint?._id || notification.complaint}`
       );
+    }
+  };
+
+  const dismissPopup = async () => {
+    if (popupNotification && (await markAsRead(popupNotification._id))) {
+      setPopupNotification(null);
     }
   };
 
@@ -281,6 +307,60 @@ const NotificationDropdown = () => {
             Showing the latest 10 unread notifications
           </div>
         </div>
+      )}
+      {enablePopup && popupNotification && (
+        <section
+          role="alertdialog"
+          aria-labelledby="admin-notification-popup-title"
+          className="fixed right-4 top-24 z-[60] w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-blue-100 bg-white shadow-2xl"
+        >
+          <div className="flex items-start gap-3 p-4">
+            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+              <Bell size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2
+                id="admin-notification-popup-title"
+                className="text-sm font-bold text-slate-800"
+              >
+                {popupNotification.title}
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {popupNotification.detail}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                {formatTime(popupNotification.createdAt)}
+              </p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={(event) =>
+                    void openNotification(event, popupNotification)
+                  }
+                  className="rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                >
+                  View complaint
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void dismissPopup()}
+                  disabled={markingNotificationId === popupNotification._id}
+                  className="rounded-md px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPopupNotification(null)}
+              aria-label="Close notification popup"
+              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            >
+              <X size={17} />
+            </button>
+          </div>
+        </section>
       )}
     </div>
   );

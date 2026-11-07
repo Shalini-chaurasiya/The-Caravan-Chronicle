@@ -97,7 +97,7 @@ const AdminDashboard = () => {
       <AdminSidebar />
 
       <div className="min-h-screen min-w-0 flex-1">
-        <AdminNavbar />
+        <AdminNavbar enableNotificationPopup />
 
         <main className="mx-auto w-full max-w-[1700px] p-4 sm:p-6 lg:p-8">
           <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">

@@ -1,6 +1,6 @@
 import NotificationDropdown from "./NotificationDropdown";
 
-const AdminNavbar = ({ title = "Dashboard" }) => {
+const AdminNavbar = ({ title = "Dashboard", enableNotificationPopup = false }) => {
   return (
     <header className="sticky top-0 z-30 flex h-[82px] items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3 sm:gap-4">
@@ -21,7 +21,7 @@ const AdminNavbar = ({ title = "Dashboard" }) => {
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6">
-        <NotificationDropdown />
+        <NotificationDropdown enablePopup={enableNotificationPopup} />
 
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-blue-50 font-bold text-blue-600">
