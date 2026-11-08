@@ -24,6 +24,16 @@ const populateComplaint = (query) =>
       "staffId name email phone department role experience status photo"
     );
 
+const toCitizenComplaint = (complaint) => {
+  const data = complaint.toObject();
+  const { sentAt, expiresAt } = data.resolutionOtp || {};
+
+  return {
+    ...data,
+    resolutionOtp: sentAt ? { sentAt, expiresAt } : null,
+  };
+};
+
 // ==========================================
 // CREATE COMPLAINT - CITIZEN
 // ==========================================
@@ -155,11 +165,12 @@ export const getMyComplaints = async (req, res) => {
     const complaints = await populateComplaint(
       Complaint.find({ user: userId })
     ).sort({ createdAt: -1 });
+    const citizenComplaints = complaints.map(toCitizenComplaint);
 
     return res.status(200).json({
       success: true,
-      count: complaints.length,
-      complaints,
+      count: citizenComplaints.length,
+      complaints: citizenComplaints,
     });
   } catch (error) {
     console.error("Get my complaints error:", error);
@@ -211,7 +222,7 @@ export const getComplaintById = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      complaint,
+      complaint: toCitizenComplaint(complaint),
     });
   } catch (error) {
     console.error("Get complaint by ID error:", error);
@@ -509,6 +520,13 @@ export const updateComplaintStatus = async (req, res) => {
         success: false,
         message: "Invalid complaint status.",
         allowedStatuses,
+      });
+    }
+
+    if (status === "Resolved") {
+      return res.status(403).json({
+        success: false,
+        message: "A complaint can only be resolved after assigned staff verifies the citizen-provided email code.",
       });
     }
 

@@ -15,6 +15,8 @@ import {
   markStaffNotificationAsRead,
   getAssignedComplaints,
   updateAssignedComplaintStatus,
+  sendComplaintResolutionOtp,
+  verifyComplaintResolutionOtp,
   getStaffProfile,
   updateStaffProfile,
   updateStaff,
@@ -97,6 +99,16 @@ router.patch(
   markStaffNotificationAsRead
 );
 router.get("/complaints", staffMiddleware, getAssignedComplaints);
+router.post(
+  "/complaints/:id/resolution-otp",
+  staffMiddleware,
+  sendComplaintResolutionOtp
+);
+router.post(
+  "/complaints/:id/verify-resolution-otp",
+  staffMiddleware,
+  verifyComplaintResolutionOtp
+);
 router.patch(
   "/complaints/:id/status",
   staffMiddleware,

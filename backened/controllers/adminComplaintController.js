@@ -21,6 +21,7 @@ const isValidId = (id) => mongoose.isValidObjectId(id);
 
 const populateComplaint = (query) =>
   query
+    .select("-resolutionOtp")
     .populate({
       path: "user",
       select: "name email contact address profileImage",
@@ -341,6 +342,13 @@ const updateComplaintStatus = async (req, res) => {
         success: false,
         message: "Invalid complaint status.",
         allowedStatuses,
+      });
+    }
+
+    if (status === "Resolved") {
+      return res.status(403).json({
+        success: false,
+        message: "A complaint can only be resolved after assigned staff verifies the citizen-provided email code.",
       });
     }
 

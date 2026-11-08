@@ -1,11 +1,14 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { randomBytes } from "crypto";
+import { timingSafeEqual } from "crypto";
+import { generateResolutionOtp, hashResolutionOtp } from "../utils/resolutionOtp.js";
+import sendResolutionOtpEmail from "../utils/sendResolutionOtpEmail.js";
 import Staff from "../models/Staff.js";
 import Complaint from "../models/Complaint.js";
 import Notification from "../models/Notification.js";
 import SLASettings from "../models/SLASettings.js";
+import { createComplaintStatusNotification } from "../utils/createComplaintNotification.js";
 
 // ============================================
 // STAFF LOGIN
@@ -454,6 +457,9 @@ const getAssignedComplaints = async (req, res) => {
     const complaints = await Complaint.find({
       assignedStaff: req.staff.staffId,
     })
+      .select(
+        "-resolutionOtp.codeHash -resolutionOtp.attempts -resolutionOtp.sendCount -resolutionOtp.windowStartedAt"
+      )
       .populate("user", "name email contact address profileImage")
       .populate(
         "assignedStaff",
@@ -530,12 +536,19 @@ const updateAssignedComplaintStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const allowedStatuses = ["Pending", "In Progress", "Resolved", "Rejected"];
+    const allowedStatuses = ["Pending", "In Progress", "Rejected"];
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid complaint ID.",
+      });
+    }
+
+    if (status === "Resolved") {
+      return res.status(403).json({
+        success: false,
+        message: "A complaint can only be resolved after staff verifies the citizen-provided email code.",
       });
     }
 
@@ -574,6 +587,7 @@ const updateAssignedComplaintStatus = async (req, res) => {
     ]);
 
     const complaintData = complaint.toObject();
+    delete complaintData.resolutionOtp;
     const staff = await Staff.findById(req.staff.staffId)
       .select("department")
       .lean();
@@ -617,6 +631,321 @@ const updateAssignedComplaintStatus = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error while updating complaint status.",
+    });
+  }
+};
+
+// POST /api/staff/complaints/:id/resolution-otp
+const sendComplaintResolutionOtp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email: submittedEmail } = req.body || {};
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    const complaint = await Complaint.findOne({
+      _id: id,
+      assignedStaff: req.staff.staffId,
+    }).populate("user", "name email");
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned complaint not found.",
+      });
+    }
+
+    if (complaint.status !== "In Progress") {
+      return res.status(409).json({
+        success: false,
+        message: "Only an in-progress complaint can be sent for verification.",
+      });
+    }
+
+    const registeredEmail = complaint.user?.email?.trim().toLowerCase();
+    const email =
+      typeof submittedEmail === "string"
+        ? submittedEmail.trim().toLowerCase()
+        : "";
+    if (
+      !registeredEmail ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registeredEmail)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "The citizen must have a valid email address on their profile before resolution verification.",
+      });
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter the citizen's registered email address.",
+      });
+    }
+    if (email !== registeredEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "The email must match the citizen's registered email address.",
+      });
+    }
+
+    const now = new Date();
+    const otpState = complaint.resolutionOtp;
+    if (
+      otpState.sentAt &&
+      now.getTime() - otpState.sentAt.getTime() < 60_000
+    ) {
+      return res.status(429).json({
+        success: false,
+        message: "Please wait one minute before sending another verification code.",
+      });
+    }
+
+    const windowIsActive =
+      otpState.windowStartedAt &&
+      now.getTime() - otpState.windowStartedAt.getTime() < 60 * 60 * 1000;
+    const sendCount = windowIsActive ? otpState.sendCount : 0;
+    if (sendCount >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: "The maximum number of verification codes was sent. Try again in one hour.",
+      });
+    }
+
+    const code = generateResolutionOtp();
+    const complaintReference = `CMP-${String(complaint._id)
+      .slice(-6)
+      .toUpperCase()}`;
+    const codeHash = hashResolutionOtp(complaint._id.toString(), code);
+    await sendResolutionOtpEmail({
+      to: email,
+      name: complaint.user.name,
+      complaintReference,
+      code,
+    });
+
+    otpState.codeHash = codeHash;
+    otpState.expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+    otpState.sentAt = now;
+    otpState.windowStartedAt = windowIsActive
+      ? otpState.windowStartedAt
+      : now;
+    otpState.sendCount = sendCount + 1;
+    otpState.attempts = 0;
+    await complaint.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification code sent to the citizen's registered email.",
+      sentTo: `${email.slice(0, 2)}••••@${email.split("@")[1]}`,
+      expiresAt: otpState.expiresAt,
+    });
+  } catch (error) {
+    console.error("Send complaint resolution OTP error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to send the verification code.",
+    });
+  }
+};
+
+// POST /api/staff/complaints/:id/verify-resolution-otp
+const verifyComplaintResolutionOtp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { code } = req.body || {};
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint ID.",
+      });
+    }
+
+    if (typeof code !== "string" || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter the 6-digit verification code provided by the citizen.",
+      });
+    }
+
+    const complaint = await Complaint.findOne({
+      _id: id,
+      assignedStaff: req.staff.staffId,
+    });
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned complaint not found.",
+      });
+    }
+
+    if (complaint.status !== "In Progress") {
+      return res.status(409).json({
+        success: false,
+        message: "Only an in-progress complaint can be verified.",
+      });
+    }
+
+    const otp = complaint.resolutionOtp;
+    if (!otp?.codeHash || !otp.expiresAt) {
+      return res.status(400).json({
+        success: false,
+        message: "No active verification code exists. Send a new code first.",
+      });
+    }
+
+    const now = new Date();
+    if (otp.expiresAt.getTime() <= now.getTime()) {
+      await Complaint.updateOne(
+        {
+          _id: id,
+          assignedStaff: req.staff.staffId,
+          "resolutionOtp.codeHash": otp.codeHash,
+        },
+        {
+          $set: {
+            "resolutionOtp.codeHash": null,
+            "resolutionOtp.expiresAt": null,
+          },
+        }
+      );
+      return res.status(400).json({
+        success: false,
+        message: "The verification code expired. Send a new code.",
+      });
+    }
+
+    if (otp.attempts >= 5) {
+      return res.status(429).json({
+        success: false,
+        message: "Too many incorrect attempts. Send a new verification code.",
+      });
+    }
+
+    const submittedHash = Buffer.from(hashResolutionOtp(id, code), "hex");
+    const savedHash = Buffer.from(otp.codeHash, "hex");
+    const hashesMatch =
+      submittedHash.length === savedHash.length &&
+      timingSafeEqual(submittedHash, savedHash);
+
+    const otpFilter = {
+      _id: id,
+      assignedStaff: req.staff.staffId,
+      status: "In Progress",
+      "resolutionOtp.codeHash": otp.codeHash,
+      "resolutionOtp.expiresAt": { $gt: now },
+      "resolutionOtp.attempts": { $lt: 5 },
+    };
+
+    if (!hashesMatch) {
+      const failedAttempt = await Complaint.findOneAndUpdate(
+        { ...otpFilter, "resolutionOtp.attempts": { $lt: 4 } },
+        { $inc: { "resolutionOtp.attempts": 1 } },
+        { new: true }
+      );
+
+      if (!failedAttempt) {
+        const lockedOtp = await Complaint.findOneAndUpdate(
+          { ...otpFilter, "resolutionOtp.attempts": 4 },
+          {
+            $set: {
+              "resolutionOtp.attempts": 5,
+              "resolutionOtp.codeHash": null,
+              "resolutionOtp.expiresAt": null,
+            },
+          },
+          { new: true }
+        );
+
+        if (lockedOtp) {
+          return res.status(429).json({
+            success: false,
+            message: "Too many incorrect attempts. Send a new verification code.",
+          });
+        }
+        return res.status(409).json({
+          success: false,
+          message: "The code expired or was already used. Send a new code.",
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "The verification code is incorrect.",
+      });
+    }
+
+    const resolvedComplaint = await Complaint.findOneAndUpdate(
+      otpFilter,
+      {
+        $set: {
+          status: "Resolved",
+          "resolutionOtp.codeHash": null,
+          "resolutionOtp.expiresAt": null,
+          "resolutionOtp.attempts": 0,
+        },
+        $push: {
+          statusHistory: {
+            status: "Resolved",
+            note: "Resolution verified using the citizen-provided email code",
+            changedAt: now,
+          },
+        },
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!resolvedComplaint) {
+      return res.status(409).json({
+        success: false,
+        message: "The code expired or was already used. Send a new code.",
+      });
+    }
+
+    const persistedComplaint = await Complaint.findById(resolvedComplaint._id)
+      .select("_id status statusHistory updatedAt")
+      .lean();
+    if (persistedComplaint?.status !== "Resolved") {
+      console.error(
+        `Complaint ${resolvedComplaint._id} did not persist its resolved status after OTP verification.`
+      );
+      return res.status(500).json({
+        success: false,
+        message: "The code was accepted, but the complaint status could not be saved. Please retry.",
+      });
+    }
+
+    try {
+      await createComplaintStatusNotification(persistedComplaint, "Resolved");
+    } catch (notificationError) {
+      console.error(
+        "Complaint was resolved, but its status notification could not be created:",
+        notificationError
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Code verified. Complaint marked resolved.",
+      complaint: {
+        _id: persistedComplaint._id,
+        status: persistedComplaint.status,
+        statusHistory: persistedComplaint.statusHistory,
+        updatedAt: persistedComplaint.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Verify complaint resolution OTP by staff error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify complaint resolution.",
     });
   }
 };
@@ -1033,6 +1362,8 @@ export {
   markStaffNotificationAsRead,
   getAssignedComplaints,
   updateAssignedComplaintStatus,
+  sendComplaintResolutionOtp,
+  verifyComplaintResolutionOtp,
   getStaffProfile,
   updateStaffProfile,
   updateStaff,

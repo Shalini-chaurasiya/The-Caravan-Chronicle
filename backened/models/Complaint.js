@@ -21,6 +21,36 @@ const statusHistorySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const resolutionOtpSchema = new mongoose.Schema(
+  {
+    codeHash: {
+      type: String,
+      default: null,
+    },
+    expiresAt: {
+      type: Date,
+      default: null,
+    },
+    sentAt: {
+      type: Date,
+      default: null,
+    },
+    windowStartedAt: {
+      type: Date,
+      default: null,
+    },
+    sendCount: {
+      type: Number,
+      default: 0,
+    },
+    attempts: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
+
 const complaintSchema = new mongoose.Schema(
   {
     // REGISTERED CITIZEN
@@ -92,6 +122,10 @@ const complaintSchema = new mongoose.Schema(
       type: [statusHistorySchema],
       default: [],
     },
+    resolutionOtp: {
+      type: resolutionOtpSchema,
+      default: () => ({}),
+    },
   },
   {
     timestamps: true,
@@ -106,6 +140,11 @@ complaintSchema.pre("save", function recordStatusHistory() {
       changedAt: this.createdAt || new Date(),
     });
   } else if (this.isModified("status")) {
+    if (this.status !== "In Progress" && this.resolutionOtp) {
+      this.resolutionOtp.codeHash = null;
+      this.resolutionOtp.expiresAt = null;
+    }
+
     this.statusHistory.push({
       status: this.status,
       note: `Status changed to ${this.status}`,
