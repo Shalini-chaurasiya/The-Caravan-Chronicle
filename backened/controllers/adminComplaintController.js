@@ -1,6 +1,7 @@
 
 import mongoose from "mongoose";
 import Complaint from "../models/Complaint.js";
+import Notification from "../models/Notification.js";
 import Staff from "../models/Staff.js";
 import getDepartmentFromComplaintType from "../utils/getDepartmentFromComplaintType.js";
 import {
@@ -221,6 +222,21 @@ const assignStaff = async (req, res) => {
       complaint,
       "Staff assigned",
       staff.name
+    );
+    await Notification.findOneAndUpdate(
+      {
+        eventKey: `staff:${staff._id}:complaint:${complaint._id}:assigned:${complaint.updatedAt.getTime()}`,
+      },
+      {
+        $setOnInsert: {
+          type: "task_assigned",
+          complaint: complaint._id,
+          staff: staff._id,
+          title: "New task assigned",
+          detail: `CMP-${String(complaint._id).slice(-6).toUpperCase()} · ${complaint.complaintType}`,
+        },
+      },
+      { upsert: true, setDefaultsOnInsert: true }
     );
 
     const updatedComplaint = await populateComplaint(

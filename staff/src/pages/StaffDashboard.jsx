@@ -44,6 +44,13 @@ const StaffDashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [staffNotifications, setStaffNotifications] = useState([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [activeNotification, setActiveNotification] = useState(null);
+  const [notificationError, setNotificationError] = useState("");
+  const [isDismissingNotification, setIsDismissingNotification] =
+    useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("staffToken");
@@ -96,6 +103,107 @@ const StaffDashboard = () => {
     loadDashboard();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("staffToken");
+    if (!token) return undefined;
+
+    const controller = new AbortController();
+
+    const loadNotifications = async () => {
+      try {
+        const response = await fetch(`${API_URL}/staff/notifications`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+          localStorage.removeItem("staffToken");
+          localStorage.removeItem("staff");
+          window.location.replace("/staff/login");
+          return;
+        }
+
+        if (
+          !response.ok ||
+          data.success === false ||
+          !Array.isArray(data.notifications)
+        ) {
+          throw new Error(data.message || "Unable to load notifications.");
+        }
+
+        setStaffNotifications(data.notifications);
+        setUnreadNotificationCount(
+          Number.isFinite(data.unreadCount)
+            ? data.unreadCount
+            : data.notifications.length
+        );
+        setActiveNotification((current) => current || data.notifications[0] || null);
+        setNotificationError("");
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error("Load staff notifications error:", error);
+          setNotificationError(error.message || "Unable to load notifications.");
+        }
+      }
+    };
+
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 15000);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const handleDismissNotification = async (notification) => {
+    const token = localStorage.getItem("staffToken");
+    if (!token) {
+      window.location.replace("/staff/login");
+      return false;
+    }
+
+    setIsDismissingNotification(true);
+    setNotificationError("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/staff/notifications/${notification._id}/read`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        localStorage.removeItem("staffToken");
+        localStorage.removeItem("staff");
+        window.location.replace("/staff/login");
+        return false;
+      }
+
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Unable to dismiss notification.");
+      }
+
+      const remaining = staffNotifications.filter(
+        (item) => item._id !== notification._id
+      );
+      setStaffNotifications(remaining);
+      setUnreadNotificationCount((count) => Math.max(0, count - 1));
+      setActiveNotification(remaining[0] || null);
+      return true;
+    } catch (error) {
+      console.error("Dismiss staff notification error:", error);
+      setNotificationError(error.message || "Unable to dismiss notification.");
+      return false;
+    } finally {
+      setIsDismissingNotification(false);
+    }
+  };
 
   const { staff, stats, recentComplaints } = dashboard;
 
@@ -161,10 +269,91 @@ const StaffDashboard = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative rounded-xl border border-slate-200 bg-white p-3 text-slate-600 hover:bg-slate-50">
-              <Bell size={20} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() =>
+                  setIsNotificationPanelOpen((isOpen) => !isOpen)
+                }
+                aria-label={`Notifications, ${unreadNotificationCount} unread`}
+                aria-expanded={isNotificationPanelOpen}
+                aria-controls="staff-notification-panel"
+                className="relative rounded-xl border border-slate-200 bg-white p-3 text-slate-600 hover:bg-slate-50"
+              >
+                <Bell size={20} />
+                {unreadNotificationCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {unreadNotificationCount > 99
+                      ? "99+"
+                      : unreadNotificationCount}
+                  </span>
+                )}
+              </button>
+
+              {isNotificationPanelOpen && (
+                <section
+                  id="staff-notification-panel"
+                  aria-label="Unread notifications"
+                  className="absolute right-0 top-full z-40 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <div>
+                      <h2 className="text-sm font-bold text-[#101c3a]">
+                        Notifications
+                      </h2>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {unreadNotificationCount} unread
+                      </p>
+                    </div>
+                    <Bell size={17} className="text-blue-600" />
+                  </div>
+
+                  {staffNotifications.length > 0 ? (
+                    <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
+                      {staffNotifications.map((notification) => (
+                        <li key={notification._id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveNotification(notification);
+                              setIsNotificationPanelOpen(false);
+                            }}
+                            className="w-full px-4 py-3 text-left transition hover:bg-blue-50"
+                          >
+                            <span className="flex items-start gap-3">
+                              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-sm font-semibold text-[#101c3a]">
+                                  {notification.title}
+                                </span>
+                                <span className="mt-1 block text-xs text-slate-600">
+                                  {notification.detail}
+                                </span>
+                                {notification.complaint && (
+                                  <span className="mt-1 block truncate text-xs text-slate-500">
+                                    {notification.complaint.complaintType}
+                                    {notification.complaint.location
+                                      ? ` · ${notification.complaint.location}`
+                                      : ""}
+                                  </span>
+                                )}
+                                <span className="mt-2 block text-[11px] text-slate-400">
+                                  {formatDate(notification.createdAt)}
+                                </span>
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-4 py-8 text-center text-sm text-slate-500">
+                      You're all caught up.
+                    </p>
+                  )}
+                </section>
+              )}
+            </div>
 
             <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
@@ -194,6 +383,11 @@ const StaffDashboard = () => {
         {loadError && (
           <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {loadError}
+          </div>
+        )}
+        {notificationError && (
+          <div role="alert" className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            {notificationError}
           </div>
         )}
 
@@ -370,6 +564,67 @@ const StaffDashboard = () => {
           </div>
         </div>
       </main>
+
+      {activeNotification && (
+        <div
+          role="alertdialog"
+          aria-labelledby="staff-task-notification-title"
+          aria-describedby="staff-task-notification-detail"
+          className="fixed bottom-4 right-4 z-50 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-blue-100 bg-white p-5 shadow-2xl"
+        >
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+              <Bell size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2
+                id="staff-task-notification-title"
+                className="font-bold text-[#101c3a]"
+              >
+                {activeNotification.title}
+              </h2>
+              <p
+                id="staff-task-notification-detail"
+                className="mt-1 text-sm text-slate-600"
+              >
+                {activeNotification.detail}
+              </p>
+              {activeNotification.complaint && (
+                <p className="mt-2 text-xs text-slate-500">
+                  {activeNotification.complaint.complaintType}
+                  {activeNotification.complaint.location
+                    ? ` · ${activeNotification.complaint.location}`
+                    : ""}
+                </p>
+              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={isDismissingNotification}
+                  onClick={() => handleDismissNotification(activeNotification)}
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  {isDismissingNotification ? "Saving..." : "Dismiss"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isDismissingNotification}
+                  onClick={async () => {
+                    const dismissed =
+                      await handleDismissNotification(activeNotification);
+                    if (dismissed) {
+                      window.location.href = "/staff/complaints";
+                    }
+                  }}
+                  className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  View task
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

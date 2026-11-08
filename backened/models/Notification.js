@@ -10,12 +10,17 @@ const notificationSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      enum: ["new_complaint", "status_update", "sla_exceeded"],
+      enum: ["new_complaint", "status_update", "sla_exceeded", "task_assigned"],
     },
     complaint: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Complaint",
       required: true,
+    },
+    staff: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      default: undefined,
     },
     title: {
       type: String,

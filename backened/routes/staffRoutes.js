@@ -11,6 +11,8 @@ import {
   getAllStaff,
   getStaffById,
   getStaffDashboard,
+  getStaffNotifications,
+  markStaffNotificationAsRead,
   getAssignedComplaints,
   updateAssignedComplaintStatus,
   getStaffProfile,
@@ -88,6 +90,12 @@ router.put(
   updateStaffProfile
 );
 router.get("/dashboard", staffMiddleware, getStaffDashboard);
+router.get("/notifications", staffMiddleware, getStaffNotifications);
+router.patch(
+  "/notifications/:id/read",
+  staffMiddleware,
+  markStaffNotificationAsRead
+);
 router.get("/complaints", staffMiddleware, getAssignedComplaints);
 router.patch(
   "/complaints/:id/status",

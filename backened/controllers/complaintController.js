@@ -512,11 +512,7 @@ export const updateComplaintStatus = async (req, res) => {
       });
     }
 
-    const complaint = await Complaint.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true, runValidators: true }
-    );
+    const complaint = await Complaint.findById(id);
 
     if (!complaint) {
       return res.status(404).json({
@@ -524,6 +520,9 @@ export const updateComplaintStatus = async (req, res) => {
         message: "Complaint not found.",
       });
     }
+
+    complaint.status = status;
+    await complaint.save();
 
     const updatedComplaint = await populateComplaint(
       Complaint.findById(complaint._id)

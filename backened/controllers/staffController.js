@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { randomBytes } from "crypto";
 import Staff from "../models/Staff.js";
 import Complaint from "../models/Complaint.js";
+import Notification from "../models/Notification.js";
 import SLASettings from "../models/SLASettings.js";
 
 // ============================================
@@ -380,6 +381,73 @@ const getStaffDashboard = async (req, res) => {
   }
 };
 
+// GET /api/staff/notifications
+const getStaffNotifications = async (req, res) => {
+  try {
+    const filter = {
+      staff: req.staff.staffId,
+      isRead: false,
+    };
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find(filter)
+        .populate("complaint", "complaintType location status createdAt")
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+      Notification.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      notifications,
+      unreadCount,
+    });
+  } catch (error) {
+    console.error("Get staff notifications error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching staff notifications.",
+    });
+  }
+};
+
+// PATCH /api/staff/notifications/:id/read
+const markStaffNotificationAsRead = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid notification ID.",
+      });
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        staff: req.staff.staffId,
+        isRead: false,
+      },
+      { $set: { isRead: true } },
+      { new: true }
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: "Unread staff notification not found.",
+      });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Mark staff notification read error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating staff notification.",
+    });
+  }
+};
+
 // GET /api/staff/complaints
 const getAssignedComplaints = async (req, res) => {
   try {
@@ -479,17 +547,10 @@ const updateAssignedComplaintStatus = async (req, res) => {
       });
     }
 
-    const complaint = await Complaint.findOneAndUpdate(
-      { _id: id, assignedStaff: req.staff.staffId },
-      { $set: { status } },
-      { new: true, runValidators: true }
-    )
-      .populate("user", "name email contact address profileImage")
-      .populate(
-        "assignedStaff",
-        "staffId name email phone department role experience status photo"
-      )
-      .lean();
+    const complaint = await Complaint.findOne({
+      _id: id,
+      assignedStaff: req.staff.staffId,
+    });
 
     if (!complaint) {
       return res.status(404).json({
@@ -498,6 +559,21 @@ const updateAssignedComplaintStatus = async (req, res) => {
       });
     }
 
+    complaint.status = status;
+    await complaint.save();
+    await complaint.populate([
+      {
+        path: "user",
+        select: "name email contact address profileImage",
+      },
+      {
+        path: "assignedStaff",
+        select:
+          "staffId name email phone department role experience status photo",
+      },
+    ]);
+
+    const complaintData = complaint.toObject();
     const staff = await Staff.findById(req.staff.staffId)
       .select("department")
       .lean();
@@ -514,7 +590,7 @@ const updateAssignedComplaintStatus = async (req, res) => {
 
     if (setting) {
       slaDueAt = new Date(
-        new Date(complaint.createdAt).getTime() +
+        new Date(complaintData.createdAt).getTime() +
           setting.defaultSLAHours * 60 * 60 * 1000
       );
       const remainingHours =
@@ -531,7 +607,7 @@ const updateAssignedComplaintStatus = async (req, res) => {
       success: true,
       message: "Complaint status updated successfully.",
       complaint: {
-        ...complaint,
+        ...complaintData,
         priority,
         slaDueAt,
       },
@@ -953,6 +1029,8 @@ export {
   getAllStaff,
   getStaffById,
   getStaffDashboard,
+  getStaffNotifications,
+  markStaffNotificationAsRead,
   getAssignedComplaints,
   updateAssignedComplaintStatus,
   getStaffProfile,

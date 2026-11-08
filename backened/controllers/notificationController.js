@@ -59,12 +59,15 @@ export const getNotifications = async (req, res) => {
     await syncOverdueNotifications();
 
     const [notifications, unreadCount] = await Promise.all([
-      Notification.find({ isRead: false })
+      Notification.find({ isRead: false, staff: { $exists: false } })
         .sort({ createdAt: -1 })
         .limit(10)
         .select("type complaint title detail isRead createdAt")
         .lean(),
-      Notification.countDocuments({ isRead: false }),
+      Notification.countDocuments({
+        isRead: false,
+        staff: { $exists: false },
+      }),
     ]);
 
     return res.status(200).json({
@@ -91,8 +94,8 @@ export const markNotificationAsRead = async (req, res) => {
       });
     }
 
-    const notification = await Notification.findByIdAndUpdate(
-      req.params.id,
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, staff: { $exists: false } },
       { $set: { isRead: true } },
       { new: true }
     );
@@ -118,7 +121,7 @@ export const markNotificationAsRead = async (req, res) => {
 export const markAllNotificationsAsRead = async (req, res) => {
   try {
     const result = await Notification.updateMany(
-      { isRead: false },
+      { isRead: false, staff: { $exists: false } },
       { $set: { isRead: true } }
     );
 

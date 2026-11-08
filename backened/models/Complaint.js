@@ -1,6 +1,26 @@
 
 import mongoose from "mongoose";
 
+const statusHistorySchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ["Pending", "In Progress", "Resolved", "Rejected"],
+      required: true,
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    changedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const complaintSchema = new mongoose.Schema(
   {
     // REGISTERED CITIZEN
@@ -68,11 +88,31 @@ const complaintSchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Resolved", "Rejected"],
       default: "Pending",
     },
+    statusHistory: {
+      type: [statusHistorySchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
   }
 );
+
+complaintSchema.pre("save", function recordStatusHistory() {
+  if (this.isNew) {
+    this.statusHistory.push({
+      status: this.status,
+      note: "Complaint submitted",
+      changedAt: this.createdAt || new Date(),
+    });
+  } else if (this.isModified("status")) {
+    this.statusHistory.push({
+      status: this.status,
+      note: `Status changed to ${this.status}`,
+      changedAt: new Date(),
+    });
+  }
+});
 
 const Complaint = mongoose.model("Complaint", complaintSchema);
 
