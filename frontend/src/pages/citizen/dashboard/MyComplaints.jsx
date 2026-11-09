@@ -12,6 +12,13 @@ import {
   ClipboardList,
 } from "lucide-react";
 
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api")
+  ? API_BASE_URL
+  : `${API_BASE_URL}/api`;
+
 const MyComplaints = () => {
   const navigate = useNavigate();
 
@@ -44,21 +51,23 @@ const MyComplaints = () => {
   // FETCH COMPLAINTS
   // =========================
   useEffect(() => {
-    const fetchComplaints = async () => {
+    const fetchComplaints = async (showLoading = true) => {
       try {
-        setLoading(true);
-        setError("");
+        if (showLoading) {
+          setLoading(true);
+          setError("");
+        }
 
         const token = localStorage.getItem("token");
 
         if (!token) {
           setError("Please login first.");
-          setLoading(false);
+          if (showLoading) setLoading(false);
           return;
         }
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/complaints/my`,
+          `${API_URL}/complaints/my`,
           {
             method: "GET",
             headers: {
@@ -69,28 +78,30 @@ const MyComplaints = () => {
 
         const data = await response.json();
 
-        console.log("My Complaints Response:", data);
-
         if (!response.ok) {
-          setError(
-            data.message || "Failed to fetch complaints."
-          );
+          if (showLoading) {
+            setError(data.message || "Failed to fetch complaints.");
+          }
           return;
         }
 
         setComplaints(data.complaints || []);
       } catch (err) {
-        console.error("Fetch complaints error:", err);
-
-        setError(
-          "Unable to connect to backend. Please try again."
-        );
+        if (showLoading) {
+          console.error("Fetch complaints error:", err);
+          setError("Unable to connect to backend. Please try again.");
+        }
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     };
 
     fetchComplaints();
+    const refreshInterval = window.setInterval(
+      () => fetchComplaints(false),
+      15000
+    );
+    return () => window.clearInterval(refreshInterval);
   }, []);
 
   // =========================

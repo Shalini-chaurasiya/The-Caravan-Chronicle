@@ -10,6 +10,44 @@ import Notification from "../models/Notification.js";
 import SLASettings from "../models/SLASettings.js";
 import { createComplaintStatusNotification } from "../utils/createComplaintNotification.js";
 
+const getComplaintTypePriority = (complaint) => {
+  const type = String(
+    complaint?.complaintType || complaint?.title || ""
+  ).toLowerCase();
+  const highPriority = [
+    "water",
+    "pipeline",
+    "leakage",
+    "road",
+    "pothole",
+    "drainage",
+    "sewer",
+    "flood",
+    "electric",
+    "street light",
+    "fire",
+  ];
+
+  if (highPriority.some((item) => type.includes(item))) {
+    return "High";
+  }
+
+  const mediumPriority = [
+    "garbage",
+    "sanitation",
+    "waste",
+    "construction",
+    "building",
+    "traffic",
+    "park",
+    "horticulture",
+  ];
+
+  return mediumPriority.some((item) => type.includes(item))
+    ? "Medium"
+    : "Low";
+};
+
 // ============================================
 // STAFF LOGIN
 // POST /api/staff/login
@@ -493,7 +531,7 @@ const getAssignedComplaints = async (req, res) => {
       if (!setting) {
         return {
           ...complaint,
-          priority: "Not configured",
+          priority: getComplaintTypePriority(complaint),
           slaDueAt: null,
         };
       }
@@ -572,8 +610,19 @@ const updateAssignedComplaintStatus = async (req, res) => {
       });
     }
 
+    const previousStatus = complaint.status;
     complaint.status = status;
     await complaint.save();
+    if (status !== previousStatus) {
+      try {
+        await createComplaintStatusNotification(complaint, status);
+      } catch (notificationError) {
+        console.error(
+          "Complaint status was updated, but its notification could not be created:",
+          notificationError
+        );
+      }
+    }
     await complaint.populate([
       {
         path: "user",
@@ -599,7 +648,7 @@ const updateAssignedComplaintStatus = async (req, res) => {
           .select("defaultSLAHours warningBeforeHours")
           .lean()
       : null;
-    let priority = "Not configured";
+    let priority = getComplaintTypePriority(complaintData);
     let slaDueAt = null;
 
     if (setting) {
@@ -910,7 +959,7 @@ const verifyComplaintResolutionOtp = async (req, res) => {
     }
 
     const persistedComplaint = await Complaint.findById(resolvedComplaint._id)
-      .select("_id status statusHistory updatedAt")
+      .select("_id complaintType status statusHistory updatedAt")
       .lean();
     if (persistedComplaint?.status !== "Resolved") {
       console.error(

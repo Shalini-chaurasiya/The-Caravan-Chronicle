@@ -48,7 +48,7 @@ const CitizenSidebar = () => {
   ];
 
   return (
-    <aside className="flex min-h-screen w-64 flex-col bg-[#10233f] text-white shadow-lg">
+    <aside className="flex h-screen min-h-0 w-64 shrink-0 flex-col overflow-y-auto bg-[#10233f] text-white shadow-lg">
 
       {/* =========================
           LOGO / BRAND

@@ -642,9 +642,9 @@ const AllComplaints = () => {
   // ==================================================
 
   const fetchComplaints =
-    async () => {
+    async (showLoading = true) => {
       try {
-        setLoading(true);
+        if (showLoading) setLoading(true);
         setError("");
 
         const response =
@@ -676,23 +676,29 @@ const AllComplaints = () => {
               data?.data ||
               [];
 
-        setComplaints(
-          records.map(
-            normalizeComplaint
-          )
-        );
+        const normalizedRecords = records.map(normalizeComplaint);
+        setComplaints(normalizedRecords);
+        setSelectedComplaint((previous) => {
+          if (!previous) return previous;
+          return (
+            normalizedRecords.find(
+              (record) => record._id === previous._id
+            ) || previous
+          );
+        });
       } catch (err) {
         console.error(
           "Fetch complaints error:",
           err
         );
 
-        setError(
-          err.message ||
-            "Unable to load complaints."
-        );
+        if (showLoading) {
+          setError(err.message || "Unable to load complaints.");
+        } else {
+          console.error("Refresh complaints error:", err);
+        }
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     };
 
@@ -752,6 +758,11 @@ const AllComplaints = () => {
   useEffect(() => {
     fetchComplaints();
     fetchStaff();
+    const refreshInterval = window.setInterval(
+      () => fetchComplaints(false),
+      15000
+    );
+    return () => window.clearInterval(refreshInterval);
   }, []);
 
   // ==================================================
@@ -2480,7 +2491,9 @@ const AllComplaints = () => {
 
                   <div className="flex flex-wrap gap-3">
 
-                    {STATUSES.map(
+                    {STATUSES.filter(
+                      (status) => status !== "Resolved"
+                    ).map(
                       (status) => (
                         <button
                           key={status}
@@ -2508,6 +2521,10 @@ const AllComplaints = () => {
                     )}
 
                   </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    A complaint is marked Resolved only after the assigned
+                    staff member verifies the code sent to the citizen.
+                  </p>
 
                 </InfoSection>
 

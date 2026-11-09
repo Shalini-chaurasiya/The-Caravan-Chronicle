@@ -101,7 +101,11 @@ const StaffDashboard = () => {
     };
 
     loadDashboard();
-    return () => controller.abort();
+    const refreshInterval = window.setInterval(loadDashboard, 15000);
+    return () => {
+      controller.abort();
+      window.clearInterval(refreshInterval);
+    };
   }, []);
 
   useEffect(() => {

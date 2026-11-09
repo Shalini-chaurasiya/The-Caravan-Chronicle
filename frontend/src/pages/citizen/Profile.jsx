@@ -1,8 +1,4 @@
-import React, {
-  useEffect,
-  useRef,
-  useState
-} from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   User,
@@ -902,6 +898,9 @@ const Profile = () => {
                   />
 
                 </div>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Resolution verification codes are sent to your registered email address.
+                </p>
 
               </div>
 

@@ -12,6 +12,42 @@ import { createComplaintNotification } from "../utils/createComplaintNotificatio
 const getUserId = (req) =>
   req.user?.id || req.user?._id || req.user?.userId;
 
+const getComplaintPriority = (complaint) => {
+  const type = String(complaint?.complaintType || "").toLowerCase();
+  const highPriority = [
+    "water",
+    "pipeline",
+    "leakage",
+    "road",
+    "pothole",
+    "drainage",
+    "sewer",
+    "flood",
+    "electric",
+    "street light",
+    "fire",
+  ];
+
+  if (highPriority.some((item) => type.includes(item))) {
+    return "High";
+  }
+
+  const mediumPriority = [
+    "garbage",
+    "sanitation",
+    "waste",
+    "construction",
+    "building",
+    "traffic",
+    "park",
+    "horticulture",
+  ];
+
+  return mediumPriority.some((item) => type.includes(item))
+    ? "Medium"
+    : "Low";
+};
+
 // ==========================================
 // HELPER: POPULATE COMPLAINT DETAILS
 // ==========================================
@@ -21,7 +57,7 @@ const populateComplaint = (query) =>
     .populate("user", "name email contact address profileImage")
     .populate(
       "assignedStaff",
-      "staffId name email phone department role experience status photo"
+      "staffId name email phone department role experience status photo gender"
     );
 
 const toCitizenComplaint = (complaint) => {
@@ -165,12 +201,19 @@ export const getMyComplaints = async (req, res) => {
     const complaints = await populateComplaint(
       Complaint.find({ user: userId })
     ).sort({ createdAt: -1 });
-    const citizenComplaints = complaints.map(toCitizenComplaint);
+    const complaintsWithPriority = complaints.map((complaint) => {
+      const citizenComplaint = toCitizenComplaint(complaint);
+
+      return {
+        ...citizenComplaint,
+        priority: getComplaintPriority(citizenComplaint),
+      };
+    });
 
     return res.status(200).json({
       success: true,
-      count: citizenComplaints.length,
-      complaints: citizenComplaints,
+      count: complaintsWithPriority.length,
+      complaints: complaintsWithPriority,
     });
   } catch (error) {
     console.error("Get my complaints error:", error);

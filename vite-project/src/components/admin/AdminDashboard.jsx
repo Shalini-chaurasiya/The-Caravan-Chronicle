@@ -68,9 +68,14 @@ const AdminDashboard = () => {
     };
 
     void loadDashboard();
+    const refreshInterval = window.setInterval(
+      () => void loadDashboard(),
+      15000
+    );
 
     return () => {
       active = false;
+      window.clearInterval(refreshInterval);
       controller.abort();
     };
   }, [period, retryCount]);

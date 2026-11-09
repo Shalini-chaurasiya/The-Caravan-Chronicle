@@ -15,7 +15,22 @@ import {
   Trash2,
   FileText,
   AlertCircle,
+  UserRound,
+  X,
+  BriefcaseBusiness,
+  Award,
+  BadgeCheck,
+  Mail,
+  Phone,
 } from "lucide-react";
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
+const API_URL = API_BASE_URL.endsWith("/api")
+  ? API_BASE_URL
+  : `${API_BASE_URL}/api`;
+const API_ORIGIN = API_BASE_URL.replace(/\/api$/, "");
 
 const formatDate = (value) => {
   if (!value) return "Date unavailable";
@@ -30,6 +45,10 @@ const formatDate = (value) => {
 };
 
 const mapComplaint = (complaint) => {
+  const staff =
+    complaint.assignedStaff && typeof complaint.assignedStaff === "object"
+      ? complaint.assignedStaff
+      : null;
   const category = complaint.complaintType || "Other";
   const normalizedCategory = category.toLowerCase();
   const Icon = /water|supply|leak|pipeline/.test(normalizedCategory)
@@ -81,14 +100,32 @@ const mapComplaint = (complaint) => {
     category,
     location: complaint.location || "Location not available",
     date: formatDate(complaint.createdAt),
-    priority: complaint.priority || "Not set",
+    priority: complaint.priority || "Not configured",
     status: complaint.status || "Pending",
     description: complaint.description || "",
-    department: complaint.assignedStaff?.department || "Not assigned",
-    assignedStaff: complaint.assignedStaff?.name || "Not assigned",
+    department: staff?.department || "Not assigned",
+    assignedStaff: staff?.name || "Not assigned",
+    staffProfile: staff
+      ? {
+          staffId: staff.staffId,
+          name: staff.name || "Assigned staff",
+          department: staff.department || "Department not provided",
+          role: staff.role || "Staff",
+          gender: staff.gender || "",
+          experience: staff.experience,
+          email: staff.email || "",
+          phone: staff.phone || "",
+          photo: staff.photo
+            ? staff.photo.startsWith("http")
+              ? staff.photo
+              : `${API_ORIGIN}${staff.photo.startsWith("/") ? "" : "/"}${staff.photo}`
+            : "",
+        }
+      : null,
     icon: Icon,
     color,
     updates,
+    resolutionOtp: complaint.resolutionOtp || null,
   };
 };
 
@@ -104,6 +141,7 @@ const priorityStyles = {
   Medium: "bg-orange-50 text-orange-600",
   Low: "bg-green-50 text-green-600",
   "Not set": "bg-slate-100 text-slate-600",
+  "Not configured": "bg-slate-100 text-slate-600",
 };
 
 const iconStyles = {
@@ -240,13 +278,16 @@ const TrackComplaints = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [showStaffProfile, setShowStaffProfile] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    const fetchComplaints = async () => {
-      setLoading(true);
-      setError("");
+    const fetchComplaints = async (showLoading = true) => {
+      if (showLoading) {
+        setLoading(true);
+        setError("");
+      }
 
       try {
         const token = localStorage.getItem("token");
@@ -255,7 +296,7 @@ const TrackComplaints = () => {
         }
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/complaints/my`,
+          `${API_URL}/complaints/my`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -276,20 +317,27 @@ const TrackComplaints = () => {
           setComplaints(data.complaints.map(mapComplaint));
         }
       } catch (fetchError) {
-        console.error("Fetch track complaints error:", fetchError);
-        if (!cancelled) {
+        if (showLoading) {
+          console.error("Fetch track complaints error:", fetchError);
+        }
+        if (!cancelled && showLoading) {
           setError(fetchError.message || "Unable to load your complaints.");
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && showLoading) {
           setLoading(false);
         }
       }
     };
 
     fetchComplaints();
+    const refreshInterval = window.setInterval(
+      () => fetchComplaints(false),
+      15000
+    );
     return () => {
       cancelled = true;
+      window.clearInterval(refreshInterval);
     };
   }, [retryCount]);
 
@@ -356,9 +404,20 @@ const TrackComplaints = () => {
                 Follow every update from submission to resolution, all in one place.
               </p>
             </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 shadow-sm">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {total} active records
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRetryCount((count) => count + 1)}
+                disabled={loading}
+                className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                Refresh updates
+              </button>
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                {total} complaints
+              </div>
             </div>
           </div>
 
@@ -493,7 +552,10 @@ const TrackComplaints = () => {
                       <button
                         key={complaint._id}
                         type="button"
-                        onClick={() => setSelectedComplaintId(complaint._id)}
+                        onClick={() => {
+                          setSelectedComplaintId(complaint._id);
+                          setShowStaffProfile(false);
+                        }}
                         className={`group w-full rounded-xl border p-3 text-left transition duration-200 sm:p-4 ${
                           isSelected
                             ? "border-blue-300 bg-blue-50/60 shadow-sm ring-1 ring-blue-200"
@@ -606,7 +668,7 @@ const TrackComplaints = () => {
                         <span
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
                             priorityStyles[activeComplaint.priority] ||
-                            priorityStyles["Not set"]
+                            priorityStyles["Not configured"]
                           }`}
                         >
                           {activeComplaint.priority}
@@ -640,6 +702,17 @@ const TrackComplaints = () => {
                       <span className="mt-1 block text-sm font-semibold text-slate-800">
                         {activeComplaint.assignedStaff}
                       </span>
+                      {activeComplaint.staffProfile && (
+                        <button
+                          type="button"
+                          onClick={() => setShowStaffProfile(true)}
+                          className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 transition hover:text-blue-900"
+                          aria-haspopup="dialog"
+                        >
+                          <UserRound size={15} />
+                          View staff profile
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -654,6 +727,25 @@ const TrackComplaints = () => {
                     </p>
                   </div>
 
+                  {activeComplaint.status === "In Progress" &&
+                    activeComplaint.resolutionOtp?.sentAt && (
+                      <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2
+                            size={21}
+                            className="mt-0.5 shrink-0 text-emerald-700"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-emerald-950">
+                              Confirm the work is complete
+                            </h3>
+                            <p className="mt-1 text-sm leading-5 text-emerald-800">
+                              A verification code was sent to your registered email. If the work is complete, give the code to the assigned staff member so they can verify it and update this complaint.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   {/* Timeline */}
                   <ProgressTimeline updates={activeComplaint.updates} />
 
@@ -680,6 +772,165 @@ const TrackComplaints = () => {
             </section>
           </div>
       </main>
+      {showStaffProfile && activeComplaint?.staffProfile && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4"
+          onClick={() => setShowStaffProfile(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staff-profile-title"
+            className="my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="relative shrink-0 bg-gradient-to-r from-[#10233f] to-[#1d5ca6] px-6 pb-6 pt-7 text-center text-white">
+              <button
+                type="button"
+                onClick={() => setShowStaffProfile(false)}
+                className="absolute right-4 top-4 rounded-lg p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close staff profile"
+              >
+                <X size={20} />
+              </button>
+              {activeComplaint.staffProfile.photo ? (
+                <img
+                  src={activeComplaint.staffProfile.photo}
+                  alt=""
+                  className="mx-auto block h-24 w-24 shrink-0 rounded-full border-4 border-white/30 object-cover"
+                />
+              ) : (
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border-4 border-white/30 bg-white/15">
+                  <UserRound size={42} />
+                </div>
+              )}
+              <h2
+                id="staff-profile-title"
+                className="mt-4 text-xl font-bold"
+              >
+                {activeComplaint.staffProfile.name}
+              </h2>
+              <p className="mt-1 text-sm text-blue-100">
+                {activeComplaint.staffProfile.role}
+              </p>
+            </div>
+            <div className="min-h-0 space-y-3 overflow-y-auto p-6">
+              <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <BriefcaseBusiness
+                  size={19}
+                  className="mt-0.5 shrink-0 text-blue-700"
+                />
+                <div>
+                  <p className="text-xs font-medium text-slate-500">
+                    Department
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {activeComplaint.staffProfile.department}
+                  </p>
+                </div>
+              </div>
+              {activeComplaint.staffProfile.staffId && (
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <BadgeCheck
+                    size={19}
+                    className="mt-0.5 shrink-0 text-blue-700"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Staff ID
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {activeComplaint.staffProfile.staffId}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {activeComplaint.staffProfile.gender && (
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <UserRound
+                    size={19}
+                    className="mt-0.5 shrink-0 text-blue-700"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Gender
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {activeComplaint.staffProfile.gender}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {activeComplaint.staffProfile.email && (
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <Mail
+                    size={19}
+                    className="mt-0.5 shrink-0 text-blue-700"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500">
+                      Email
+                    </p>
+                    <a
+                      href={`mailto:${activeComplaint.staffProfile.email}`}
+                      className="mt-1 block break-all text-sm font-semibold text-blue-700 hover:text-blue-900"
+                    >
+                      {activeComplaint.staffProfile.email}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {activeComplaint.staffProfile.phone && (
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <Phone
+                    size={19}
+                    className="mt-0.5 shrink-0 text-blue-700"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Phone
+                    </p>
+                    <a
+                      href={`tel:${activeComplaint.staffProfile.phone}`}
+                      className="mt-1 block text-sm font-semibold text-blue-700 hover:text-blue-900"
+                    >
+                      {activeComplaint.staffProfile.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {activeComplaint.staffProfile.experience !== undefined && (
+                <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                  <Award
+                    size={19}
+                    className="mt-0.5 shrink-0 text-blue-700"
+                  />
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Experience
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {activeComplaint.staffProfile.experience}{" "}
+                      {activeComplaint.staffProfile.experience === 1
+                        ? "year"
+                        : "years"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 border-t border-slate-100 px-6 py-4 text-right">
+              <button
+                type="button"
+                onClick={() => setShowStaffProfile(false)}
+                className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+              >
+                Done
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

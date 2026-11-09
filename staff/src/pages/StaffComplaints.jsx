@@ -10,6 +10,7 @@ import {
   Filter,
   MapPin,
   ExternalLink,
+  MessageSquareText,
   RefreshCw,
   Search,
   X,
@@ -21,6 +22,38 @@ const API_BASE_URL = (
 const API_URL = API_BASE_URL.endsWith("/api")
   ? API_BASE_URL
   : `${API_BASE_URL}/api`;
+
+const fetchWithStaffAuth = (url, options = {}) => {
+  const headers = new Headers(options.headers);
+  const token = localStorage.getItem("staffToken");
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  } else {
+    headers.delete("Authorization");
+  }
+
+  return fetch(url, { ...options, headers });
+};
+
+const getIdValue = (value) => {
+  if (typeof value === "string") return value.trim();
+  if (!value || typeof value !== "object") return "";
+  if (typeof value.toHexString === "function") return value.toHexString();
+  if (typeof value.$oid === "string") return value.$oid;
+  return getIdValue(value._id || value.id);
+};
+
+const getComplaintId = (complaint) =>
+  getIdValue(complaint?._id) ||
+  getIdValue(complaint?.id) ||
+  getIdValue(complaint?.complaint?._id) ||
+  getIdValue(complaint?.complaint?.id);
+
+const normalizeComplaint = (complaint) => {
+  const id = getComplaintId(complaint);
+  return { ...complaint, _id: id };
+};
 
 const formatDate = (date, includeTime = false) => {
   if (!date) return "Not available";
@@ -69,6 +102,12 @@ const StaffComplaints = () => {
   const [loadError, setLoadError] = useState("");
   const [statusError, setStatusError] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isSendingResolutionOtp, setIsSendingResolutionOtp] = useState(false);
+  const [resolutionOtpMessage, setResolutionOtpMessage] = useState("");
+  const [resolutionEmail, setResolutionEmail] = useState("");
+  const [resolutionCode, setResolutionCode] = useState("");
+  const [isVerifyingResolutionOtp, setIsVerifyingResolutionOtp] = useState(false);
+  const [resolutionVerificationMessage, setResolutionVerificationMessage] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("staffToken");
@@ -79,7 +118,7 @@ const StaffComplaints = () => {
 
     const controller = new AbortController();
 
-    const loadComplaints = async () => {
+    const loadComplaints = async (showError = true) => {
       try {
         const response = await fetch(`${API_URL}/staff/complaints`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -98,10 +137,20 @@ const StaffComplaints = () => {
           throw new Error(data.message || "Unable to load assigned complaints.");
         }
 
-        setComplaints(data.complaints);
-        setLoadError("");
+        const normalizedComplaints = data.complaints.map(normalizeComplaint);
+        setComplaints(normalizedComplaints);
+        setSelectedComplaint((current) => {
+          if (!current) return current;
+          return (
+            normalizedComplaints.find(
+              (complaint) =>
+                getComplaintId(complaint) === getComplaintId(current)
+            ) || current
+          );
+        });
+        if (showError) setLoadError("");
       } catch (error) {
-        if (error.name !== "AbortError") {
+        if (showError && error.name !== "AbortError") {
           console.error("Load assigned complaints error:", error);
           setLoadError(error.message || "Unable to load assigned complaints.");
         }
@@ -111,7 +160,14 @@ const StaffComplaints = () => {
     };
 
     loadComplaints();
-    return () => controller.abort();
+    const refreshInterval = window.setInterval(
+      () => loadComplaints(false),
+      15000
+    );
+    return () => {
+      controller.abort();
+      window.clearInterval(refreshInterval);
+    };
   }, []);
 
   const filteredComplaints = useMemo(() => {
@@ -184,7 +240,8 @@ const StaffComplaints = () => {
   };
 
   const updateStatus = async (newStatus) => {
-    if (!selectedComplaint || newStatus === selectedComplaint.status) return;
+    const complaintId = getComplaintId(selectedComplaint);
+    if (!complaintId || newStatus === selectedComplaint.status) return;
 
     const token = localStorage.getItem("staffToken");
     setIsUpdatingStatus(true);
@@ -192,7 +249,7 @@ const StaffComplaints = () => {
 
     try {
       const response = await fetch(
-        `${API_URL}/staff/complaints/${selectedComplaint._id}/status`,
+        `${API_URL}/staff/complaints/${complaintId}/status`,
         {
           method: "PATCH",
           headers: {
@@ -217,15 +274,200 @@ const StaffComplaints = () => {
 
       setComplaints((current) =>
         current.map((complaint) =>
-          complaint._id === data.complaint._id ? data.complaint : complaint
+          getComplaintId(complaint) === getComplaintId(data.complaint)
+            ? normalizeComplaint(data.complaint)
+            : complaint
         )
       );
-      setSelectedComplaint(data.complaint);
+      setSelectedComplaint(normalizeComplaint(data.complaint));
     } catch (error) {
       console.error("Update complaint status error:", error);
       setStatusError(error.message || "Unable to update complaint status.");
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const sendResolutionOtp = async () => {
+    const complaint = selectedComplaint;
+    const normalizedComplaint = normalizeComplaint(complaint);
+    const complaintId = normalizedComplaint._id;
+    if (!complaintId) {
+      setStatusError(
+        "This complaint record is missing its database ID. Refresh the complaint list and try again."
+      );
+      return;
+    }
+
+    if (!/^[a-f\d]{24}$/i.test(complaintId)) {
+      setStatusError(
+        "This complaint has an invalid database ID. Refresh the complaint list and try again."
+      );
+      return;
+    }
+
+    if (!resolutionEmail.trim()) {
+      setStatusError("Enter the citizen's registered email address.");
+      return;
+    }
+
+    const token = localStorage.getItem("staffToken");
+    setIsSendingResolutionOtp(true);
+    setStatusError("");
+    setResolutionOtpMessage("");
+    setResolutionVerificationMessage("");
+    setResolutionCode("");
+    setSelectedComplaint(normalizedComplaint);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/staff/complaints/${complaintId}/resolution-otp`,
+        {
+          method: "POST",
+          body: new URLSearchParams({ email: resolutionEmail.trim() }),
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        localStorage.removeItem("staffToken");
+        localStorage.removeItem("staff");
+        window.location.replace("/staff/login");
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to send the verification code.");
+      }
+
+      const updatedComplaint = {
+        ...normalizedComplaint,
+        resolutionOtp: {
+          ...normalizedComplaint.resolutionOtp,
+          sentAt: new Date().toISOString(),
+          expiresAt: data.expiresAt,
+        },
+      };
+      setComplaints((current) =>
+        current.map((item) =>
+          getComplaintId(item) === complaintId ? updatedComplaint : item
+        )
+      );
+      setSelectedComplaint(updatedComplaint);
+      setResolutionOtpMessage(
+        `${data.message} Sent to ${data.sentTo}.`
+      );
+    } catch (error) {
+      console.error("Send resolution OTP error:", error);
+      setStatusError(error.message || "Unable to send the verification code.");
+    } finally {
+      setIsSendingResolutionOtp(false);
+    }
+  };
+
+  const verifyResolutionOtp = async (event) => {
+    event.preventDefault();
+    const complaintId = getComplaintId(selectedComplaint);
+    if (!complaintId || resolutionCode.length !== 6) return;
+
+    setIsVerifyingResolutionOtp(true);
+    setStatusError("");
+    setResolutionVerificationMessage("");
+
+    try {
+      const response = await fetchWithStaffAuth(
+        `${API_URL}/staff/complaints/${complaintId}/verify-resolution-otp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ code: resolutionCode }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 401) {
+        localStorage.removeItem("staffToken");
+        localStorage.removeItem("staff");
+        window.location.replace("/staff/login");
+        return;
+      }
+
+      if (
+        !response.ok ||
+        !data.success ||
+        !data.complaint ||
+        data.complaint.status !== "Resolved"
+      ) {
+        throw new Error(data.message || "Unable to verify the code.");
+      }
+
+      setComplaints((current) =>
+        current.map((complaint) =>
+          getComplaintId(complaint) === complaintId
+            ? {
+                ...complaint,
+                ...data.complaint,
+                statusHistory:
+                  data.complaint.statusHistory || complaint.statusHistory,
+              }
+            : complaint
+        )
+      );
+      setSelectedComplaint((current) =>
+        current && getComplaintId(current) === complaintId
+          ? {
+              ...current,
+              ...data.complaint,
+              statusHistory:
+                data.complaint.statusHistory || current.statusHistory,
+            }
+          : current
+      );
+      setResolutionCode("");
+      setResolutionVerificationMessage(data.message);
+
+      try {
+        const refreshResponse = await fetchWithStaffAuth(
+          `${API_URL}/staff/complaints`
+        );
+        const refreshedData = await refreshResponse.json().catch(() => ({}));
+        const persistedComplaint = refreshedData.complaints?.find(
+          (complaint) => getComplaintId(complaint) === complaintId
+        );
+        if (
+          refreshResponse.ok &&
+          persistedComplaint &&
+          persistedComplaint.status !== "Resolved"
+        ) {
+          setStatusError(
+            "The server accepted the code, but the complaint is still not marked Resolved. Contact your administrator."
+          );
+        }
+        if (persistedComplaint?.status === "Resolved") {
+          const refreshedComplaint = normalizeComplaint(persistedComplaint);
+          setComplaints((current) =>
+            current.map((complaint) =>
+              getComplaintId(complaint) === complaintId
+                ? refreshedComplaint
+                : complaint
+            )
+          );
+          setSelectedComplaint(refreshedComplaint);
+        }
+      } catch (refreshError) {
+        console.error(
+          "Complaint resolved, but refreshing the staff complaint list failed:",
+          refreshError
+        );
+      }
+    } catch (error) {
+      console.error("Verify resolution OTP error:", error);
+      setStatusError(error.message || "Unable to verify the code.");
+    } finally {
+      setIsVerifyingResolutionOtp(false);
     }
   };
 
@@ -321,7 +563,14 @@ const StaffComplaints = () => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => setSelectedComplaint(complaint)}
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setResolutionEmail(complaint.user?.email || "");
+                          setStatusError("");
+                          setResolutionOtpMessage("");
+                          setResolutionCode("");
+                          setResolutionVerificationMessage("");
+                        }}
                         className="flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800"
                       >
                         Review <Eye size={16} />
@@ -434,16 +683,40 @@ const StaffComplaints = () => {
                         </span>
                       </td>
                       <td className="p-4">
+                        <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
                           onClick={() => {
                             setStatusError("");
+                            setResolutionOtpMessage("");
                             setSelectedComplaint(complaint);
+                            setResolutionEmail(complaint.user?.email || "");
+                            setResolutionCode("");
+                            setResolutionVerificationMessage("");
                           }}
                           className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800"
                         >
                           <Eye size={16} /> View details
                         </button>
+                        {complaint.status === "In Progress" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStatusError("");
+                              setResolutionOtpMessage("");
+                              setSelectedComplaint(complaint);
+                              setResolutionEmail(complaint.user?.email || "");
+                              setResolutionCode("");
+                              setResolutionVerificationMessage("");
+                            }}
+                            disabled={isSendingResolutionOtp}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <MessageSquareText size={15} />
+                            {isSendingResolutionOtp ? "Sending..." : "Send OTP"}
+                          </button>
+                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -595,20 +868,109 @@ const StaffComplaints = () => {
                 <label htmlFor="complaint-status" className="mb-2 block text-sm font-semibold text-slate-700">
                   Update Complaint Status
                 </label>
-                <select
-                  id="complaint-status"
-                  value={selectedComplaint.status}
-                  onChange={(event) => updateStatus(event.target.value)}
-                  disabled={isUpdatingStatus}
-                  className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 disabled:opacity-60"
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
+                {selectedComplaint.status === "Resolved" ? (
+                  <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+                    Resolution verified using the citizen-provided email code.
+                  </p>
+                ) : (
+                  <select
+                    id="complaint-status"
+                    value={selectedComplaint.status}
+                    onChange={(event) => updateStatus(event.target.value)}
+                    disabled={isUpdatingStatus}
+                    className="w-full rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 disabled:opacity-60"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                )}
                 {isUpdatingStatus && (
                   <p className="mt-2 text-sm text-slate-500">Saving status...</p>
+                )}
+                {selectedComplaint.status === "In Progress" && (
+                  <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4">
+                    <p className="text-sm leading-5 text-blue-900">
+                      Enter the citizen’s registered email to send a one-time verification code. The citizen must provide that code to you before you can verify the resolution.
+                    </p>
+                    <label
+                      htmlFor="resolution-email"
+                      className="mb-1 mt-3 block text-sm font-semibold text-slate-700"
+                    >
+                      Citizen’s registered email
+                    </label>
+                    <input
+                      id="resolution-email"
+                      type="email"
+                      value={resolutionEmail}
+                      onChange={(event) => setResolutionEmail(event.target.value)}
+                      autoComplete="email"
+                      required
+                      disabled={isSendingResolutionOtp}
+                      placeholder="citizen@example.com"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+                    />
+                    <button
+                      type="button"
+                      onClick={sendResolutionOtp}
+                      disabled={isSendingResolutionOtp || !resolutionEmail.trim()}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <MessageSquareText size={17} />
+                      {isSendingResolutionOtp
+                        ? "Sending code..."
+                        : "Send resolution OTP"}
+                    </button>
+                    {resolutionOtpMessage && (
+                      <p role="status" className="mt-3 text-sm text-green-700">
+                        {resolutionOtpMessage}
+                      </p>
+                    )}
+                    {selectedComplaint.resolutionOtp?.sentAt && (
+                      <form onSubmit={verifyResolutionOtp} className="mt-4 border-t border-blue-200 pt-4">
+                        <label
+                          htmlFor="resolution-code"
+                          className="mb-1.5 block text-sm font-semibold text-slate-700"
+                        >
+                          Enter the code provided by the citizen
+                        </label>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <input
+                            id="resolution-code"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            pattern="[0-9]{6}"
+                            value={resolutionCode}
+                            onChange={(event) => {
+                              setResolutionCode(
+                                event.target.value.replace(/\D/g, "").slice(0, 6)
+                              );
+                              setStatusError("");
+                            }}
+                            placeholder="Enter 6-digit code"
+                            disabled={isVerifyingResolutionOtp}
+                            className="h-11 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm tracking-[0.2em] outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-60"
+                          />
+                          <button
+                            type="submit"
+                            disabled={
+                              isVerifyingResolutionOtp || resolutionCode.length !== 6
+                            }
+                            className="inline-flex h-11 items-center justify-center rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isVerifyingResolutionOtp ? "Verifying..." : "Verify and resolve"}
+                          </button>
+                        </div>
+                        {resolutionVerificationMessage && (
+                          <p role="status" className="mt-3 text-sm font-medium text-emerald-700">
+                            {resolutionVerificationMessage}
+                          </p>
+                        )}
+                      </form>
+                    )}
+                  </div>
                 )}
                 {statusError && (
                   <p role="alert" className="mt-2 text-sm text-red-600">{statusError}</p>

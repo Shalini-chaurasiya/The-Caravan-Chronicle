@@ -22,6 +22,7 @@ import departmentRoutes from "./routes/departmentRoutes.js";
 import slaRoutes from "./routes/slaRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import citizenNotificationRoutes from "./routes/citizenNotificationRoutes.js";
 
 import { seedAdmin } from "./utils/seedAdmin.js";
 
@@ -104,6 +105,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/complaints", complaintRoutes);
 
 app.use("/api/profile", profileRoutes);
+app.use("/api/notifications", citizenNotificationRoutes);
 
 // ==========================================
 // ADMIN ROUTES
