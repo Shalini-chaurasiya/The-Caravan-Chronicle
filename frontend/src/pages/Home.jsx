@@ -2,15 +2,15 @@ import RoleSelection from "../components/RoleSelection";
 
 const Home = () => {
   return (
-    <div className="h-screen overflow-hidden bg-slate-100 flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-3 sm:p-4">
 
       {/* Main Container */}
-      <div className="w-full max-w-6xl h-[90vh] bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="mx-auto w-full max-w-6xl min-h-[90vh] overflow-hidden rounded-xl bg-white shadow-md">
 
-        <div className="flex flex-col md:flex-row h-full">
+        <div className="flex min-h-[90vh] flex-col md:flex-row">
 
           {/* LEFT SIDE */}
-          <div className="w-full md:w-1/2 bg-slate-100 px-8 py-6 lg:px-12 lg:py-8 flex items-center">
+          <div className="flex w-full items-center bg-slate-100 px-5 py-7 sm:px-8 sm:py-8 md:w-1/2 lg:px-12 lg:py-8">
 
             <div className="w-full">
 
@@ -20,7 +20,7 @@ const Home = () => {
               </p>
 
               {/* Main Heading */}
-              <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 leading-tight">
+              <h1 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl lg:text-4xl">
                 Welcome to
                 <br />
                 Municipal Grievance
@@ -82,7 +82,7 @@ const Home = () => {
           </div>
 
           {/* RIGHT SIDE */}
-          <div className="w-full md:w-1/2 bg-white px-8 py-6 lg:px-12 lg:py-8 flex items-center">
+          <div className="flex w-full items-center bg-white px-5 py-7 sm:px-8 sm:py-8 md:w-1/2 lg:px-12 lg:py-8">
             <RoleSelection />
           </div>
 

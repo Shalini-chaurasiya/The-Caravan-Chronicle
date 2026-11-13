@@ -369,10 +369,10 @@ const StaffProfile = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f3f6fc]">
+    <div className="flex min-h-screen flex-col bg-[#f3f6fc] md:flex-row">
       <StaffSidebar />
 
-      <main className="ml-64 flex-1 min-w-0 p-5 md:p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-5 md:ml-64 md:p-8">
         <div className="max-w-6xl mx-auto">
 
           {/* Page Heading */}

@@ -295,12 +295,12 @@ const CitizenDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 md:h-screen md:flex-row md:overflow-hidden">
       <CitizenSidebar />
 
-      <main className="h-screen min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-7 lg:px-10 lg:py-9">
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-7 lg:px-10 lg:py-9 md:h-screen md:overflow-y-auto">
         <div className="mx-auto max-w-7xl">
-          <header className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+          <header className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
             <div>
               <p className="mb-2 text-sm font-semibold text-blue-700">
                 Citizen portal
@@ -312,7 +312,7 @@ const CitizenDashboard = () => {
                 Keep track of your requests and the latest updates from your city.
               </p>
             </div>
-            <div className="flex items-center gap-3 self-start sm:self-auto">
+            <div className="flex items-center gap-3 self-start lg:self-auto">
               <button
                 type="button"
                 onClick={refreshDashboard}

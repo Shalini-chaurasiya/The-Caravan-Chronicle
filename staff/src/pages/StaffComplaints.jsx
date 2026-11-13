@@ -479,10 +479,10 @@ const StaffComplaints = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#f3f6fc]">
+    <div className="flex min-h-screen flex-col bg-[#f3f6fc] md:flex-row">
       <StaffSidebar />
 
-      <main className="ml-64 min-w-0 flex-1 p-5 md:p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-5 md:ml-64 md:p-8">
         <div className="mx-auto max-w-7xl">
           <header className="mb-8">
             <p className="mb-2 text-xs font-bold tracking-wider text-blue-600">

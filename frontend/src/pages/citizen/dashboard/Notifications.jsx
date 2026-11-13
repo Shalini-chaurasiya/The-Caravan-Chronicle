@@ -129,11 +129,11 @@ const Notifications = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 md:h-screen md:flex-row md:overflow-hidden">
       <CitizenSidebar />
-      <main className="h-screen min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-7 lg:px-10 lg:py-9">
+      <main className="min-w-0 flex-1 px-4 py-6 sm:px-7 lg:px-10 lg:py-9 md:h-screen md:overflow-y-auto">
         <div className="mx-auto max-w-5xl">
-          <header className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <header className="mb-7 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div className="flex items-center gap-3">
               <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
                 <Bell size={23} />

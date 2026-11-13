@@ -48,12 +48,12 @@ const CitizenSidebar = () => {
   ];
 
   return (
-    <aside className="flex h-screen min-h-0 w-64 shrink-0 flex-col overflow-y-auto bg-[#10233f] text-white shadow-lg">
+    <aside className="flex w-full shrink-0 flex-col overflow-hidden bg-[#10233f] text-white shadow-lg md:h-screen md:min-h-0 md:w-64 md:overflow-y-auto">
 
       {/* =========================
           LOGO / BRAND
       ========================== */}
-      <div className="flex h-[82px] items-center gap-3 border-b border-white/10 px-5">
+      <div className="flex h-[70px] shrink-0 items-center gap-3 border-b border-white/10 px-5 md:h-[82px]">
 
         {/* Logo */}
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1d72e8]">
@@ -76,13 +76,13 @@ const CitizenSidebar = () => {
       {/* =========================
           MENU
       ========================== */}
-      <nav className="flex-1 px-3 py-6">
+      <nav className="px-3 py-3 md:flex-1 md:py-6">
 
-        <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[1px] text-slate-500">
+        <p className="mb-3 hidden px-3 text-[10px] font-bold uppercase tracking-[1px] text-slate-500 md:block">
           Main Menu
         </p>
 
-        <div className="space-y-1">
+        <div className="flex gap-1 overflow-x-auto md:block md:space-y-1">
 
           {menuItems.map((item) => {
             const Icon = item.icon;
@@ -92,8 +92,10 @@ const CitizenSidebar = () => {
                 key={item.path}
                 to={item.path}
                 end={item.path === "/citizen/dashboard"}
+                aria-label={item.name}
+                title={item.name}
                 className={({ isActive }) =>
-                  `group flex h-[46px] items-center gap-3 rounded-lg px-3 text-[13px] font-medium transition-all duration-200 ${
+                  `group flex h-[46px] shrink-0 items-center justify-center gap-3 rounded-lg px-3 text-[13px] font-medium transition-all duration-200 md:justify-start ${
                     isActive
                       ? "bg-[#1d72e8] text-white shadow-md shadow-blue-900/20"
                       : "text-slate-300 hover:bg-white/[0.07] hover:text-white"
@@ -107,7 +109,7 @@ const CitizenSidebar = () => {
                       strokeWidth={isActive ? 2.4 : 2}
                     />
 
-                    <span>{item.name}</span>
+                    <span className="hidden md:inline">{item.name}</span>
                   </>
                 )}
               </NavLink>
@@ -130,11 +132,13 @@ const CitizenSidebar = () => {
         <button
           type="button"
           onClick={handleLogout}
-          className="flex h-[46px] w-full items-center gap-3 rounded-lg px-3 text-[13px] font-medium text-slate-300 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
+          aria-label="Logout"
+          title="Logout"
+          className="flex h-[46px] w-full items-center justify-center gap-3 rounded-lg px-3 text-[13px] font-medium text-slate-300 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400 md:justify-start"
         >
           <LogOut size={18} />
 
-          <span>Logout</span>
+          <span className="hidden md:inline">Logout</span>
         </button>
 
       </div>

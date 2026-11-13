@@ -260,9 +260,9 @@ const StaffDashboard = () => {
       <StaffSidebar />
 
       {/* Main Content */}
-      <main className="min-h-screen ml-64 p-8">
+      <main className="min-h-screen min-w-0 p-4 sm:p-6 md:ml-64 lg:p-8">
         {/* Top Navbar */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 lg:flex-row lg:items-center">
           <div>
             <p className="text-sm text-slate-500">
               Staff Portal / Dashboard
@@ -272,7 +272,7 @@ const StaffDashboard = () => {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start sm:gap-4">
             <div className="relative">
               <button
                 type="button"
@@ -359,7 +359,7 @@ const StaffDashboard = () => {
               )}
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <div className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-2 sm:gap-3 sm:px-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-700">
                 {staff.photo ? (
                   <img
@@ -372,11 +372,11 @@ const StaffDashboard = () => {
                 )}
               </div>
 
-              <div>
-                <p className="text-sm font-semibold text-[#101c3a]">
+              <div className="min-w-0">
+                <p className="max-w-40 truncate text-sm font-semibold text-[#101c3a]">
                   {staff.name || "Staff Member"}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="max-w-40 truncate text-xs text-slate-500">
                   {staff.department || "Staff"}
                 </p>
               </div>
@@ -396,7 +396,7 @@ const StaffDashboard = () => {
         )}
 
         {/* Welcome Banner */}
-        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#101c3a] to-blue-700 p-7 text-white shadow-lg">
+        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-[#101c3a] to-blue-700 p-5 text-white shadow-lg sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-5">
             <div>
               <p className="mb-2 text-sm text-blue-200">
@@ -455,7 +455,7 @@ const StaffDashboard = () => {
 
         {/* Complaints Table */}
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-4 sm:p-6">
             <div>
               <h2 className="text-lg font-bold text-[#101c3a]">
                 Recent Complaints
